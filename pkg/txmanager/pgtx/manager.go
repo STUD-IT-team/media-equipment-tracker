@@ -63,7 +63,11 @@ func (m *PgTxManager) runTx(ctx context.Context, fn func(ctx context.Context) er
 	if err != nil {
 		return txmanager.WrapBeginError(err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
 
 	ctx = setTxCtx(ctx, tx)
 

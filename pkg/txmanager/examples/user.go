@@ -2,7 +2,6 @@ package examples
 
 import (
 	"context"
-	"fmt"
 	"media-equipment-tracker/pkg/txmanager/pgtx"
 
 	"github.com/Masterminds/squirrel"
@@ -34,9 +33,6 @@ func (r *UserRepository) Get(ctx context.Context, id int) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(query)
-	fmt.Println(args...)
 
 	err = q.QueryRow(ctx, query, args...).Scan(&user.ID, &user.Name, &user.Age, &user.Money)
 	if err != nil {

@@ -3,49 +3,52 @@ package txmanager
 import "fmt"
 
 type TxError struct {
-	op  string
-	err error
+	Op  string
+	Err error
 }
 
 func (e *TxError) Error() string {
-	return fmt.Sprintf("transaction manager: %s: %s", e.op, e.err.Error())
+	if e.Err == nil {
+		return fmt.Sprintf("transaction manager: %s", e.Op)
+	}
+	return fmt.Sprintf("transaction manager: %s: %s", e.Op, e.Err.Error())
 }
 
 func (e *TxError) Unwrap() error {
-	return e.err
+	return e.Err
 }
 
 func WrapCommitError(err error) *TxError {
 	return &TxError{
-		op:  "commit",
-		err: err,
+		Op:  "commit",
+		Err: err,
 	}
 }
 
 func WrapRollbackError(err error) *TxError {
 	return &TxError{
-		op:  "rollback",
-		err: err,
+		Op:  "rollback",
+		Err: err,
 	}
 }
 
 func WrapBeginError(err error) *TxError {
 	return &TxError{
-		op:  "begin",
-		err: err,
+		Op:  "begin",
+		Err: err,
 	}
 }
 
 func WrapTransactionClosureError(err error) *TxError {
 	return &TxError{
-		op:  "closure",
-		err: err,
+		Op:  "closure",
+		Err: err,
 	}
 }
 
 func WrapRetryExceeded(err error) *TxError {
 	return &TxError{
-		op:  "retry exceeded",
-		err: err,
+		Op:  "retry exceeded",
+		Err: err,
 	}
 }
