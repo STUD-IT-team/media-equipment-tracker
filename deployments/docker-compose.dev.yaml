@@ -12,7 +12,7 @@ services:
     env_file:
       - postgres.env
     volumes:
-      - vol-media-equipment-tracker:/var/lib/postgresql/data
+      - pg-vol-media-equipment-tracker:/var/lib/postgresql/data
     ports:
       - 5432:5432
     healthcheck:
@@ -20,6 +20,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - postgres-media-equipment-tracker
+
+  migrator-media-equipment-tracker:
+    container_name: migrator-media-equipment-tracker
+    depends_on:
+      db-media-equipment-tracker:
+        condition: service_healthy
+    env_file:
+      - migrator.env
+    build:
+      context: ./migrations
+      dockerfile: Dockerfile
+    networks:
+      - postgres-media-equipment-tracker
+
+networks:
+  postgres-media-equipment-tracker:
+    name: postgres-media-equipment-tracker
 
 volumes:
   pg-vol-media-equipment-tracker:
