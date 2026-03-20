@@ -18,15 +18,27 @@ CREATE TABLE department
 CREATE TABLE "user"
 (
     id              UUID PRIMARY KEY,
-    full_name       VARCHAR(255)        NOT NULL,
-    email           VARCHAR(255) UNIQUE NOT NULL,
-    hash_password   TEXT                NOT NULL,
-    nice            INT,
-    is_admin        BOOLEAN,
-    role            role_in_department,
+    full_name       VARCHAR(255)         NOT NULL,
+    email           VARCHAR(255) UNIQUE  NOT NULL,
+    hash_password   VARCHAR(255)         NOT NULL,
+    nice            INT CHECK (nice > 0) NOT NULL,
+    is_admin        BOOLEAN
+);
+
+CREATE TABLE user_organization
+(
+    user_id         UUID,
     organization_id UUID,
-    department_id   UUID,
-    FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
+    FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL
+);
+
+CREATE TABLE user_department
+(
+    role          role_in_department,
+    user_id       UUID,
+    department_id UUID,
+    FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
     FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
 );
 
@@ -65,30 +77,42 @@ CREATE TABLE equipment_invocation
 (
     id                    UUID PRIMARY KEY,
     event_name            VARCHAR(255) NOT NULL,
-    start_time            TIMESTAMP    NOT NULL,
-    end_time              TIMESTAMP    NOT NULL,
-    equipment_return_time TIMESTAMP    NOT NULL,
-    sd_card_return_time   TIMESTAMP    NOT NULL,
+    start_time            TIMESTAMPTZ  NOT NULL,
+    end_time              TIMESTAMPTZ  NOT NULL,
+    equipment_return_time TIMESTAMPTZ  NOT NULL,
+    sd_card_return_time   TIMESTAMPTZ  NOT NULL,
     status                equipment_invocation_status,
     curator_comment       TEXT,
 
-    equipment_id          UUID         NOT NULL,
-    organization_id       UUID         NOT NULL,
-    department_id         UUID         NOT NULL,
+    organization_id       UUID,
+    department_id         UUID,
     user_id               UUID         NOT NULL,
-    admin_id              UUID         NOT NULL,
-    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE,
+    admin_id              UUID,
     FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL,
     FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
     FOREIGN KEY (admin_id) REFERENCES "user" (id) ON DELETE SET NULL
 );
 
+ALTER TABLE equipment_invocation
+    ADD CONSTRAINT exactly_one_not_null CHECK (
+        (organization_id IS NOT NULL AND department_id IS NULL) OR
+        (organization_id IS NULL AND department_id IS NOT NULL)
+        );
+
+CREATE TABLE equipment_in_invocation
+(
+    invocation_id UUID NOT NULL,
+    equipment_id UUID NOT NULL,
+    FOREIGN KEY (invocation_id) REFERENCES equipment_invocation (id) ON DELETE CASCADE,
+    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE
+);
+
 CREATE TABLE message_equipment_invocation
 (
     id            UUID PRIMARY KEY,
     content       TEXT NOT NULL,
-    sent_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sent_time     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     invocation_id UUID NOT NULL,
     sender_id     UUID NOT NULL,
@@ -112,8 +136,8 @@ CREATE TABLE studio_invocation
     id                   UUID PRIMARY KEY,
     event_name           VARCHAR(255)             NOT NULL,
     shooting_description TEXT                     NOT NULL,
-    start_time           TIMESTAMP                NOT NULL,
-    end_time             TIMESTAMP                NOT NULL,
+    start_time           TIMESTAMPTZ                NOT NULL,
+    end_time             TIMESTAMPTZ                NOT NULL,
     needs_chromakey      BOOLEAN DEFAULT FALSE,
     needs_cyclorama      BOOLEAN DEFAULT FALSE,
     needs_black_fabric   BOOLEAN DEFAULT FALSE,
@@ -135,7 +159,7 @@ CREATE TABLE message_studio_invocation
 (
     id            UUID PRIMARY KEY,
     content       TEXT NOT NULL,
-    sent_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sent_time     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     invocation_id UUID NOT NULL,
     sender_id     UUID NOT NULL,
@@ -151,7 +175,10 @@ CREATE INDEX idx_message_studio_invocation_sender ON message_studio_invocation (
 CREATE INDEX idx_message_studio_invocation_recipient ON message_studio_invocation (recipient_id);
 CREATE INDEX idx_message_equipment_invocation_sender ON message_equipment_invocation (sender_id);
 CREATE INDEX idx_message_equipment_invocation_recipient ON message_equipment_invocation (recipient_id);
-
+CREATE INDEX idx_studio_invocation_start_time ON studio_invocation (start_time);
+CREATE INDEX idx_studio_invocation_end_time ON studio_invocation (end_time);
+CREATE INDEX idx_equipment_invocation_start_time ON equipment_invocation (start_time);
+CREATE INDEX idx_equipment_invocation_end_time ON equipment_invocation (end_time);
 
 -- +goose StatementEnd
 
