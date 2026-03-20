@@ -1,8 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TYPE role_in_department AS ENUM ('trainee', 'activist');
-
 CREATE TABLE organization
 (
     id   UUID PRIMARY KEY,
@@ -17,12 +15,12 @@ CREATE TABLE department
 
 CREATE TABLE "user"
 (
-    id              UUID PRIMARY KEY,
-    full_name       VARCHAR(255)         NOT NULL,
-    email           VARCHAR(255) UNIQUE  NOT NULL,
-    hash_password   VARCHAR(255)         NOT NULL,
-    nice            INT CHECK (nice > 0) NOT NULL,
-    is_admin        BOOLEAN
+    id            UUID PRIMARY KEY,
+    full_name     VARCHAR(255)         NOT NULL,
+    email         VARCHAR(255) UNIQUE  NOT NULL,
+    hash_password VARCHAR(255)         NOT NULL,
+    nice          INT CHECK (nice > 0) NOT NULL,
+    is_admin      BOOLEAN
 );
 
 CREATE TABLE user_organization
@@ -32,6 +30,8 @@ CREATE TABLE user_organization
     FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
     FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL
 );
+
+CREATE TYPE role_in_department AS ENUM ('trainee', 'activist');
 
 CREATE TABLE user_department
 (
@@ -57,8 +57,14 @@ CREATE TABLE equipment
     short_name           VARCHAR(100),
     category             VARCHAR(100)        NOT NULL,
     available_to_trainee BOOLEAN DEFAULT FALSE,
-    status               equipment_status,
-    department_id        UUID,
+    status               equipment_status
+);
+
+CREATE TABLE equipment_department
+(
+    equipment_id  UUID,
+    department_id UUID,
+    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE SET NULL,
     FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
 );
 
@@ -103,7 +109,7 @@ ALTER TABLE equipment_invocation
 CREATE TABLE equipment_in_invocation
 (
     invocation_id UUID NOT NULL,
-    equipment_id UUID NOT NULL,
+    equipment_id  UUID NOT NULL,
     FOREIGN KEY (invocation_id) REFERENCES equipment_invocation (id) ON DELETE CASCADE,
     FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE
 );
@@ -136,8 +142,8 @@ CREATE TABLE studio_invocation
     id                   UUID PRIMARY KEY,
     event_name           VARCHAR(255)             NOT NULL,
     shooting_description TEXT                     NOT NULL,
-    start_time           TIMESTAMPTZ                NOT NULL,
-    end_time             TIMESTAMPTZ                NOT NULL,
+    start_time           TIMESTAMPTZ              NOT NULL,
+    end_time             TIMESTAMPTZ              NOT NULL,
     needs_chromakey      BOOLEAN DEFAULT FALSE,
     needs_cyclorama      BOOLEAN DEFAULT FALSE,
     needs_black_fabric   BOOLEAN DEFAULT FALSE,
