@@ -9,39 +9,38 @@ info:
     - **Activist** (Активист) — полный доступ к бронированию
     - **Admin** (Администратор) — управление системой, может стать куратором заявок
     
-    ## Особенности
-    - Система рейтинга "Порядочность" (100-балльная шкала)
-    - QR-коды для выдачи/возврата оборудования
-    - Поддержка чата внутри заявок
-    
   version: 0.0.1
   contact:
     name: Media Tech BMSTU Team
 
 tags:
-  - name: Authentication
+  - name: Auth
     description: Аутентификация и авторизация
   - name: Users
     description: Управление пользователями
+  - name: Organizations
+    description: Управление организациями
+  - name: Departments
+    description: Управление отделами
   - name: Equipment
     description: Управление оборудованием
-  - name: Equipment Invocation
+  - name: Equipment_Invocations
     description: Заявки на оборудование
-  - name: Studio Invocation
+  - name: Studio_Invocations
     description: Заявки на студию
   - name: Messages
     description: Чат внутри заявок
-  - name: Admin
-    description: Административные функции
+  - name: Invitations
+    description: Пригласительные ссылки
   - name: Statistics
     description: Статистика и отчётность
 
 paths:
-  # ==================== AUTHENTICATION ====================
+  # ==================== AUTH ====================
   
   /auth/register:
     post:
-      tags: [Authentication]
+      tags: [Auth]
       summary: Регистрация по приглашению
       description: Регистрация нового пользователя по уникальной ссылке-приглашению
       requestBody:
@@ -64,7 +63,7 @@ paths:
 
   /auth/login:
     post:
-      tags: [Authentication]
+      tags: [Auth]
       summary: Вход в систему
       requestBody:
         required: true
@@ -82,11 +81,22 @@ paths:
         '401':
           description: Неверные учётные данные
 
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Выход из системы
+      description: Инвалидация текущего токена
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Успешный выход
+
   /auth/refresh:
     post:
-      tags: [Authentication]
+      tags: [Auth]
       summary: Обновление access токена
-      description: Получение нового access токена по refresh токену (SHOULD)
+      description: Получение нового access токена по refresh токену
       requestBody:
         required: true
         content:
@@ -104,23 +114,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenResponse'
 
-  /auth/password-reset:
+  /auth/change-password:
     post:
-      tags: [Authentication]
-      summary: Восстановление пароля (SHOULD)
+      tags: [Auth]
+      summary: Смена пароля (авторизованный пользователь)
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [old_password, new_password]
               properties:
-                email:
+                old_password:
                   type: string
-                  format: email
+                new_password:
+                  type: string
+                  minLength: 8
       responses:
         '200':
-          description: Инструкции отправлены на email
+          description: Пароль успешно изменён
+        '401':
+          description: Неверный текущий пароль
 
   # ==================== USERS ====================
   
@@ -138,10 +155,69 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserResponse'
 
+    patch:
+      tags: [Users]
+      summary: Обновить профиль текущего пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserDto'
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /users/me/invocations:
+    get:
+      tags: [Users]
+      summary: Получить все бронирования текущего пользователя
+      description: Объединённый список заявок на оборудование и студию
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [equipment, studio, all]
+            default: all
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Список бронирований
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  equipment_invocations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EquipmentInvocationResponse'
+                  studio_invocations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudioInvocationResponse'
+
   /users:
     get:
-      tags: [Users, Admin]
-      summary: Список пользователей (Admin only)
+      tags: [Users]
+      summary: Список всех пользователей (Admin only)
       security:
         - bearerAuth: []
       parameters:
@@ -149,27 +225,84 @@ paths:
           in: query
           schema:
             type: string
-          description: Поиск по ФИО/email/организации
-        - name: organization_id
-          in: query
-          schema:
-            type: string
-            format: uuid
+          description: Поиск по ФИО/email
       responses:
         '200':
           description: Список пользователей
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserResponse'
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResponse'
         '403':
           description: Доступ запрещён
 
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Получить пользователя по ID (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailResponse'
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Пользователь не найден
+
+    patch:
+      tags: [Users]
+      summary: Обновить пользователя (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserAdminDto'
+      responses:
+        '200':
+          description: Пользователь обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Невалидные данные или конфликт
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Пользователь не найден
+        '409':
+          description: Email уже используется
+
   /users/{id}/nice:
     patch:
-      tags: [Users, Admin]
+      tags: [Users]
       summary: Изменить баллы порядочности (Admin only)
       security:
         - bearerAuth: []
@@ -186,20 +319,352 @@ paths:
           application/json:
             schema:
               type: object
+              required: [nice, reason]
               properties:
                 nice:
                   type: integer
                   minimum: 1
-                  description: Баллы порядочности (CHECK nice > 0)
-                reason:
-                  type: string
+                  description: Новое значение порядочности (CHECK nice > 0)
       responses:
         '200':
           description: Баллы обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
         '403':
           description: Доступ запрещён
         '404':
           description: Пользователь не найден
+
+  # ==================== ORGANIZATIONS ====================
+  
+  /organizations:
+    get:
+      tags: [Organizations]
+      summary: Список всех организаций
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Поиск по названию
+      responses:
+        '200':
+          description: Список организаций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationResponse'
+
+    post:
+      tags: [Organizations]
+      summary: Создать организацию (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationDto'
+      responses:
+        '201':
+          description: Организация создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '403':
+          description: Доступ запрещён
+        '409':
+          description: Организация с таким названием уже существует
+
+  /organizations/{id}:
+    get:
+      tags: [Organizations]
+      summary: Получить организацию по ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация об организации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDetailResponse'
+        '404':
+          description: Организация не найдена
+
+    patch:
+      tags: [Organizations]
+      summary: Обновить организацию (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationDto'
+      responses:
+        '200':
+          description: Организация обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Организация не найдена
+
+    delete:
+      tags: [Organizations]
+      summary: Удалить организацию (Admin only)
+      description: Удаление организации
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Организация удалена
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Организация не найдена
+        '409':
+          description: Невозможно удалить - есть незавершённые заявки
+
+  /organizations/{id}/users:
+    get:
+      tags: [Organizations]
+      summary: Получить пользователей организации
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+
+  # ==================== DEPARTMENTS ====================
+  
+  /departments:
+    get:
+      tags: [Departments]
+      summary: Список всех отделов
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Поиск по названию
+      responses:
+        '200':
+          description: Список отделов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepartmentResponse'
+
+    post:
+      tags: [Departments]
+      summary: Создать отдел (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDepartmentDto'
+      responses:
+        '201':
+          description: Отдел создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+        '403':
+          description: Доступ запрещён
+        '409':
+          description: Отдел с таким названием уже существует
+
+  /departments/{id}:
+    get:
+      tags: [Departments]
+      summary: Получить отдел по ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация об отделе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentDetailResponse'
+        '404':
+          description: Отдел не найден
+
+    patch:
+      tags: [Departments]
+      summary: Обновить отдел (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDepartmentDto'
+      responses:
+        '200':
+          description: Отдел обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Отдел не найден
+
+    delete:
+      tags: [Departments]
+      summary: Удалить отдел (Admin only)
+      description: Удаление отдела (SET NULL на связанных записях)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Отдел удалён
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Отдел не найден
+        '409':
+          description: Невозможно удалить - есть незавершённые заявки или пользователи
+
+  /departments/{id}/users:
+    get:
+      tags: [Departments]
+      summary: Получить пользователей отдела с ролями
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/RoleInDepartment'
+      responses:
+        '200':
+          description: Список пользователей с ролями
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user:
+                      $ref: '#/components/schemas/UserResponse'
+                    role:
+                      $ref: '#/components/schemas/RoleInDepartment'
+
+  /departments/{id}/equipment:
+    get:
+      tags: [Departments]
+      summary: Получить оборудование отдела
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: available_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Список оборудования
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentResponse'
 
   # ==================== EQUIPMENT ====================
   
@@ -214,29 +679,60 @@ paths:
           in: query
           schema:
             type: string
-        - name: available_only
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/EquipmentStatus'
+        - name: available_to_trainee
           in: query
           schema:
             type: boolean
-            default: false
+        - name: department_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: available_at
+          in: query
+          schema:
+            type: string
+            format: date-time
         - name: search
           in: query
           schema:
             type: string
-          description: Поиск по названию/инвентарному номеру (SHOULD)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
-          description: Список оборудования
+          description: Список оборудования с пагинацией
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EquipmentResponse'
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EquipmentResponse'
 
     post:
-      tags: [Equipment, Admin]
-      summary: Добавить новое оборудование (Admin only)
+      tags: [Equipment]
+      summary: Создать оборудование (Admin only)
       security:
         - bearerAuth: []
       requestBody:
@@ -254,6 +750,8 @@ paths:
                 $ref: '#/components/schemas/EquipmentResponse'
         '403':
           description: Доступ запрещён
+        '409':
+          description: Инвентарный номер уже существует
 
   /equipment/{id}:
     get:
@@ -274,7 +772,59 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/EquipmentDetailResponse'
+
+    patch:
+      tags: [Equipment]
+      summary: Обновить оборудование (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEquipmentDto'
+      responses:
+        '200':
+          description: Оборудование обновлено
+          content:
+            application/json:
+              schema:
                 $ref: '#/components/schemas/EquipmentResponse'
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Оборудование не найдено
+
+    delete:
+      tags: [Equipment]
+      summary: Удалить оборудование (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Оборудование удалено
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Оборудование не найдено
+        '409':
+          description: Невозможно удалить - есть история заявок
 
   /equipment/{id}/availability:
     get:
@@ -311,54 +861,50 @@ paths:
                 properties:
                   available:
                     type: boolean
+                  equipment:
+                    $ref: '#/components/schemas/EquipmentResponse'
                   conflicting_invocations:
                     type: array
                     items:
-                      $ref: '#/components/schemas/EquipmentInvocationResponse'
+                      type: object
+                      properties:
+                        invocation_id:
+                          type: string
+                          format: uuid
+                        event_name:
+                          type: string
+                        start_time:
+                          type: string
+                          format: date-time
+                        end_time:
+                          type: string
+                          format: date-time
+                        status:
+                          type: string
 
-  # ==================== EQUIPMENT INVOCATION ====================
+  # ==================== EQUIPMENT INVOCATIONS ====================
   
   /equipment-invocations:
     get:
-      tags: [Equipment Invocation]
-      summary: Список заявок на оборудование
+      tags: [Equipment_Invocations]
+      summary: Список заявок на оборудование (Admin only)
       security:
         - bearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            $ref: '#/components/schemas/EquipmentInvocationStatus'
-        - name: my_only
-          in: query
-          schema:
-            type: boolean
-            default: true
-          description: Только свои заявки (для пользователей)
-        - name: without_curator
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: Только заявки без куратора (Admin)
-        - name: as_curator
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: Заявки, где пользователь - куратор
       responses:
         '200':
           description: Список заявок
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EquipmentInvocationResponse'
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EquipmentInvocationResponse'
 
     post:
-      tags: [Equipment Invocation]
+      tags: [Equipment_Invocations]
       summary: Создать заявку на оборудование
       security:
         - bearerAuth: []
@@ -378,11 +924,11 @@ paths:
         '400':
           description: Недостаточно баллов порядочности или оборудование недоступно
         '403':
-          description: Доступ запрещён (например, стажёр без достаточного рейтинга)
+          description: Доступ запрещён
 
   /equipment-invocations/{id}:
     get:
-      tags: [Equipment Invocation]
+      tags: [Equipment_Invocations]
       summary: Получить заявку на оборудование
       security:
         - bearerAuth: []
@@ -404,8 +950,8 @@ paths:
           description: Заявка не найдена
 
     patch:
-      tags: [Equipment Invocation]
-      summary: Обновить заявку (до согласования)
+      tags: [Equipment_Invocations]
+      summary: Обновить заявку
       security:
         - bearerAuth: []
       parameters:
@@ -424,14 +970,18 @@ paths:
       responses:
         '200':
           description: Заявка обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
         '400':
-          description: Редактирование недоступно (заявка уже согласована)
+          description: Редактирование недоступно
         '403':
           description: Нет прав на редактирование
 
     delete:
-      tags: [Equipment Invocation]
-      summary: Удалить заявку (до согласования)
+      tags: [Equipment_Invocations]
+      summary: Удалить заявку
       security:
         - bearerAuth: []
       parameters:
@@ -445,15 +995,15 @@ paths:
         '204':
           description: Заявка удалена
         '400':
-          description: Удаление недоступно (заявка уже согласована)
+          description: Удаление недоступно
         '403':
           description: Нет прав на удаление
 
   /equipment-invocations/{id}/become-curator:
     post:
-      tags: [Equipment Invocation, Admin]
-      summary: Стать куратором заявки (Admin)
-      description: Администратор берёт заявку в работу как куратор (admin_id в БД)
+      tags: [Equipment_Invocations]
+      summary: Стать куратором заявки (Admin only)
+      description: Администратор берёт заявку в работу как куратор
       security:
         - bearerAuth: []
       parameters:
@@ -466,13 +1016,17 @@ paths:
       responses:
         '200':
           description: Куратор назначен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
         '409':
           description: У заявки уже есть куратор
 
   /equipment-invocations/{id}/status:
     patch:
-      tags: [Equipment Invocation, Admin]
-      summary: Изменить статус заявки (Curator)
+      tags: [Equipment_Invocations]
+      summary: Изменить статус заявки (Curator или Admin)
       security:
         - bearerAuth: []
       parameters:
@@ -494,18 +1048,21 @@ paths:
                   $ref: '#/components/schemas/EquipmentInvocationStatus'
                 curator_comment:
                   type: string
-                  description: Комментарий куратора (curator_comment в БД)
       responses:
         '200':
           description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
         '403':
           description: Пользователь не является куратором заявки
 
   /equipment-invocations/{id}/issue:
     post:
-      tags: [Equipment Invocation, Admin]
+      tags: [Equipment_Invocations]
       summary: Выдать оборудование (Curator)
-      description: Выдача оборудования по QR-коду или ручному вводу ID. Статус переходит в equipment_issued
+      description: Выдача оборудования по QR-коду или ручному вводу ID
       security:
         - bearerAuth: []
       parameters:
@@ -526,21 +1083,21 @@ paths:
                 equipment_id:
                   type: string
                   format: uuid
-                  description: ID оборудования (может быть получен из QR-кода)
                 qr_id:
                   type: string
-                  description: QR-ID оборудования (SHOULD)
       responses:
         '200':
           description: Оборудование выдано
-        '400':
-          description: Оборудование не найдено или недоступно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
   /equipment-invocations/{id}/return:
     post:
-      tags: [Equipment Invocation, Admin]
+      tags: [Equipment_Invocations]
       summary: Принять оборудование (Curator)
-      description: Возврат оборудования по QR-коду или ручному вводу ID. Статус переходит в equipment_returned
+      description: Возврат оборудования по QR-коду или ручному вводу ID
       security:
         - bearerAuth: []
       parameters:
@@ -563,41 +1120,95 @@ paths:
                   format: uuid
                 qr_id:
                   type: string
-                  description: QR-ID оборудования (SHOULD)
+                condition_notes:
+                  type: string
       responses:
         '200':
           description: Оборудование принято
-
-  # ==================== STUDIO INVOCATION ====================
-  
-  /studio-invocations:
-    get:
-      tags: [Studio Invocation]
-      summary: Список заявок на студию
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            $ref: '#/components/schemas/StudioInvocationStatus'
-        - name: my_only
-          in: query
-          schema:
-            type: boolean
-            default: true
-      responses:
-        '200':
-          description: Список заявок
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudioInvocationResponse'
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
+
+  /equipment-invocations/{id}/complete:
+    post:
+      tags: [Equipment_Invocations]
+      summary: Завершить заявку (Curator)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Заявка завершена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
+
+  /equipment-invocations/{id}/cancel:
+    post:
+      tags: [Equipment_Invocations]
+      summary: Отменить заявку
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Заявка отменена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
+
+  # ==================== STUDIO INVOCATIONS ====================
+  
+  /studio-invocations:
+    get:
+      tags: [Studio_Invocations]
+      summary: Список заявок на студию (Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список заявок с пагинацией
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudioInvocationResponse'
 
     post:
-      tags: [Studio Invocation]
+      tags: [Studio_Invocations]
       summary: Создать заявку на студию
       security:
         - bearerAuth: []
@@ -616,10 +1227,12 @@ paths:
                 $ref: '#/components/schemas/StudioInvocationResponse'
         '400':
           description: Недостаточно баллов или время занято
+        '403':
+          description: Доступ запрещён
 
   /studio-invocations/{id}:
     get:
-      tags: [Studio Invocation]
+      tags: [Studio_Invocations]
       summary: Получить заявку на студию
       security:
         - bearerAuth: []
@@ -639,7 +1252,7 @@ paths:
                 $ref: '#/components/schemas/StudioInvocationDetailResponse'
 
     patch:
-      tags: [Studio Invocation]
+      tags: [Studio_Invocations]
       summary: Обновить заявку на студию
       security:
         - bearerAuth: []
@@ -659,9 +1272,13 @@ paths:
       responses:
         '200':
           description: Заявка обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioInvocationResponse'
 
     delete:
-      tags: [Studio Invocation]
+      tags: [Studio_Invocations]
       summary: Удалить заявку на студию
       security:
         - bearerAuth: []
@@ -678,8 +1295,8 @@ paths:
 
   /studio-invocations/{id}/become-curator:
     post:
-      tags: [Studio Invocation, Admin]
-      summary: Стать куратором заявки на студию
+      tags: [Studio_Invocations]
+      summary: Стать куратором заявки на студию (Admin only)
       security:
         - bearerAuth: []
       parameters:
@@ -692,11 +1309,15 @@ paths:
       responses:
         '200':
           description: Куратор назначен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioInvocationResponse'
 
   /studio-invocations/{id}/status:
     patch:
-      tags: [Studio Invocation, Admin]
-      summary: Изменить статус заявки на студию
+      tags: [Studio_Invocations]
+      summary: Изменить статус заявки на студию (Curator или Admin)
       security:
         - bearerAuth: []
       parameters:
@@ -721,14 +1342,117 @@ paths:
       responses:
         '200':
           description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioInvocationResponse'
+
+  /studio-invocations/{id}/complete:
+    post:
+      tags: [Studio_Invocations]
+      summary: Завершить заявку на студию (Curator)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Заявка завершена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioInvocationResponse'
+
+  /studio-invocations/{id}/cancel:
+    post:
+      tags: [Studio_Invocations]
+      summary: Отменить заявку на студию
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Заявка отменена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioInvocationResponse'
+
+  /studio-invocations/schedule:
+    get:
+      tags: [Studio_Invocations]
+      summary: Получить расписание студии
+      description: Получение занятости студии для отображения в календаре
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Расписание студии
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    event_name:
+                      type: string
+                    start_time:
+                      type: string
+                      format: date-time
+                    end_time:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+                    needs_chromakey:
+                      type: boolean
+                    needs_cyclorama:
+                      type: boolean
+                    needs_black_fabric:
+                      type: boolean
 
   # ==================== MESSAGES ====================
   
   /equipment-invocations/{id}/messages:
     get:
       tags: [Messages]
-      summary: Получить сообщения заявки на оборудование (SHOULD)
-      description: Соответствует таблице message_equipment_invocation
+      summary: Получить сообщения заявки на оборудование
       security:
         - bearerAuth: []
       parameters:
@@ -738,20 +1462,34 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
-          description: Список сообщений
+          description: Список сообщений с пагинацией
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MessageEquipmentInvocationResponse'
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessageEquipmentInvocationResponse'
 
     post:
       tags: [Messages]
-      summary: Отправить сообщение в заявку на оборудование (SHOULD)
-      description: Создаёт запись в message_equipment_invocation
+      summary: Отправить сообщение в заявку на оборудование
       security:
         - bearerAuth: []
       parameters:
@@ -761,88 +1499,6 @@ paths:
           schema:
             type: string
             format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [content, recipient_id]
-              properties:
-                content:
-                  type: string
-                  maxLength: 2000
-                recipient_id:
-                  type: string
-                  format: uuid
-                  description: ID получателя (sender_id берётся из токена)
-      responses:
-        '201':
-          description: Сообщение отправлено
-
-  /studio-invocations/{id}/messages:
-    get:
-      tags: [Messages]
-      summary: Получить сообщения заявки на студию (SHOULD)
-      description: Соответствует таблице message_studio_invocation
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Список сообщений
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MessageStudioInvocationResponse'
-
-    post:
-      tags: [Messages]
-      summary: Отправить сообщение в заявку на студию (SHOULD)
-      description: Создаёт запись в message_studio_invocation
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [content, recipient_id]
-              properties:
-                content:
-                  type: string
-                recipient_id:
-                  type: string
-                  format: uuid
-      responses:
-        '201':
-          description: Сообщение отправлено
-
-  # ==================== ADMIN & STATISTICS ====================
-  
-  /admin/broadcast:
-    post:
-      tags: [Admin]
-      summary: Массовая рассылка (COULD)
-      description: Отправка сообщения всем пользователям
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -853,18 +1509,166 @@ paths:
               properties:
                 content:
                   type: string
-                filter_organization_id:
+                  maxLength: 2000
+                recipient_id:
                   type: string
                   format: uuid
-                  description: Фильтр по организации (опционально)
       responses:
-        '202':
-          description: Рассылка запущена
+        '201':
+          description: Сообщение отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageEquipmentInvocationResponse'
+
+  /studio-invocations/{id}/messages:
+    get:
+      tags: [Messages]
+      summary: Получить сообщения заявки на студию
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Список сообщений с пагинацией
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessageStudioInvocationResponse'
+
+    post:
+      tags: [Messages]
+      summary: Отправить сообщение в заявку на студию
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  maxLength: 2000
+                recipient_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Сообщение отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageStudioInvocationResponse'
+
+  # ==================== INVITATIONS ====================
+  
+  /invitations:
+    post:
+      tags: [Invitations]
+      summary: Создать пригласительную ссылку
+      description: Создание новой пригласительной ссылки (Admin может создавать всегда, Activist - с ограничениями)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_at:
+                  type: string
+                  format: date-time
+                organization_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                department_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                max_uses:
+                  type: integer
+                  minimum: 1
+      responses:
+        '201':
+          description: Приглашение создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationResponse'
+
+  # ==================== STATISTICS ====================
+  
+  /statistics/dashboard:
+    get:
+      tags: [Statistics]
+      summary: Дашборд администратора
+      description: Ключевые метрики и показатели системы
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Данные дашборда
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending_equipment_invocations:
+                    type: integer
+                  pending_studio_invocations:
+                    type: integer
+                  active_equipment_issued:
+                    type: integer
+                  overdue_returns:
+                    type: integer
+                  low_nice_users:
+                    type: integer
+                  equipment_under_maintenance:
+                    type: integer
+                  today_studio_invocations:
+                    type: integer
 
   /statistics/equipment-popularity:
     get:
       tags: [Statistics]
-      summary: Популярность оборудования (COULD)
+      summary: Популярность оборудования
       security:
         - bearerAuth: []
       parameters:
@@ -872,15 +1676,48 @@ paths:
           in: query
           schema:
             type: string
-            enum: [month, quarter, year]
+            enum: [month, quarter, year, all]
+            default: month
+        - name: department_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: Статистика популярности
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    equipment_id:
+                      type: string
+                      format: uuid
+                    equipment_name:
+                      type: string
+                    inventory_number:
+                      type: string
+                    category:
+                      type: string
+                    invocations_count:
+                      type: integer
+                    total_days_used:
+                      type: integer
+                    unique_users:
+                      type: integer
 
   /statistics/monthly-load:
     get:
       tags: [Statistics]
-      summary: Загруженность по месяцам (COULD)
+      summary: Загруженность по месяцам
       security:
         - bearerAuth: []
       parameters:
@@ -888,30 +1725,72 @@ paths:
           in: query
           schema:
             type: string
-            enum: [equipment, studio]
+            enum: [equipment, studio, all]
+            default: all
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: department_id
+          in: query
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Статистика загруженности
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    month:
+                      type: string
+                    equipment_invocations_count:
+                      type: integer
+                    studio_invocations_count:
+                      type: integer
+                    total_invocation_hours:
+                      type: number
+                    unique_users:
+                      type: integer
 
   /statistics/overdue-by-department:
     get:
       tags: [Statistics]
-      summary: Просрочки по отделам (COULD)
+      summary: Просрочки по отделам
       security:
         - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [month, quarter, year, all]
+            default: month
       responses:
         '200':
           description: Статистика просрочек
-
-  /statistics/curator-activity:
-    get:
-      tags: [Statistics]
-      summary: Активность администраторов (COULD)
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Статистика активности кураторов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    department_id:
+                      type: string
+                      format: uuid
+                    department_name:
+                      type: string
+                    overdue_count:
+                      type: integer
+                    avg_delay_hours:
+                      type: number
+                    total_penalty_nice:
+                      type: integer
 
 components:
   securitySchemes:
@@ -921,23 +1800,23 @@ components:
       bearerFormat: JWT
 
   schemas:
-    # ==================== ENUMS (соответствуют БД) ====================
+    # ==================== ENUMS ====================
     
     RoleInDepartment:
       type: string
       enum: [trainee, activist]
-      description: Роль пользователя в отделе (role_in_department в БД)
+      description: Роль пользователя в отделе
     
     EquipmentStatus:
       type: string
       enum: [available, issued, under_maintenance, unavailable]
-      description: Статус оборудования (equipment_status в БД)
+      description: Статус оборудования
     
     EquipmentInvocationStatus:
       type: string
       enum: [created, under_review, changes_required, approved, equipment_issued, equipment_returned, completed, cancelled]
       description: |
-        Статусы заявки на оборудование (equipment_invocation_status в БД):
+        Статусы заявки на оборудование:
         - created — Создана
         - under_review — На рассмотрении
         - changes_required — Требуются изменения
@@ -951,7 +1830,7 @@ components:
       type: string
       enum: [created, under_review, changes_required, approved, completed, cancelled]
       description: |
-        Статусы заявки на студию (studio_invocation_status в БД):
+        Статусы заявки на студию:
         - created — Создана
         - under_review — На рассмотрении
         - changes_required — Требуются изменения
@@ -959,36 +1838,126 @@ components:
         - completed — Завершена
         - cancelled — Отменена
 
-    # ==================== DTO (входящие) ====================
+    # ==================== DTOs ====================
     
     CreateUserDto:
       type: object
-      required: [invite_token, full_name, email, hash_password]
+      required: [invite_token, full_name, email, password]
       properties:
         invite_token:
           type: string
-          description: Уникальный токен приглашения
         full_name:
           type: string
           maxLength: 255
         email:
           type: string
           format: email
-        hash_password:
+        password:
           type: string
           minLength: 8
-          description: Пароль (будет захеширован bcrypt)
 
     LoginDto:
       type: object
-      required: [email, hash_password]
+      required: [email, password]
       properties:
         email:
           type: string
           format: email
-        hash_password:
+        password:
           type: string
-          format: password
+
+    UpdateUserDto:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+
+    UpdateUserAdminDto:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Новое ФИО пользователя
+        email:
+          type: string
+          format: email
+          description: Новый email (должен быть уникальным)
+        password:
+          type: string
+          minLength: 8
+          description: Новый пароль
+        nice:
+          type: integer
+          minimum: 1
+          description: Баллы порядочности (CHECK nice > 0)
+        is_admin:
+          type: boolean
+          description: Назначить/снять права администратора
+        organizations:
+          type: array
+          description: Полный список организаций пользователя (заменяет существующие)
+          items:
+            type: object
+            required: [organization_id, action]
+            properties:
+              organization_id:
+                type: string
+                format: uuid
+              action:
+                type: string
+                enum: [add, remove]
+                description: add - добавить, remove - удалить
+        departments:
+          type: array
+          description: Полный список отделов и ролей пользователя (заменяет существующие)
+          items:
+            type: object
+            required: [department_id, role, action]
+            properties:
+              department_id:
+                type: string
+                format: uuid
+              role:
+                $ref: '#/components/schemas/RoleInDepartment'
+              action:
+                type: string
+                enum: [add, update, remove]
+                description: add - добавить, update - изменить роль, remove - удалить
+
+    CreateOrganizationDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+
+    UpdateOrganizationDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+
+    CreateDepartmentDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+
+    UpdateDepartmentDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
 
     CreateEquipmentDto:
       type: object
@@ -997,7 +1966,6 @@ components:
         inventory_number:
           type: string
           maxLength: 100
-          description: Официальный инвентарный номер
         name:
           type: string
           maxLength: 255
@@ -1010,12 +1978,33 @@ components:
         available_to_trainee:
           type: boolean
           default: false
+        status:
+          $ref: '#/components/schemas/EquipmentStatus'
         department_ids:
           type: array
           items:
             type: string
             format: uuid
-          description: ID отделов для таблицы equipment_department
+
+    UpdateEquipmentDto:
+      type: object
+      properties:
+        inventory_number:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 255
+        short_name:
+          type: string
+          maxLength: 100
+        category:
+          type: string
+          maxLength: 100
+        available_to_trainee:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/EquipmentStatus'
 
     CreateEquipmentInvocationDto:
       type: object
@@ -1027,33 +2016,26 @@ components:
         start_time:
           type: string
           format: date-time
-          description: Начало мероприятия
         end_time:
           type: string
           format: date-time
-          description: Окончание мероприятия
         equipment_return_time:
           type: string
           format: date-time
-          description: Время возврата оборудования
         sd_card_return_time:
           type: string
           format: date-time
-          description: Время возврата SD-карт
         organization_id:
           type: string
           format: uuid
-          description: ID организации (взаимоисключающий с department_id, exactly_one_not_null)
         department_id:
           type: string
           format: uuid
-          description: ID отдела (взаимоисключающий с organization_id, exactly_one_not_null)
         equipment_ids:
           type: array
           items:
             type: string
             format: uuid
-          description: Список ID оборудования для таблицы equipment_in_invocation (корзина - SHOULD)
 
     UpdateEquipmentInvocationDto:
       type: object
@@ -1113,7 +2095,6 @@ components:
           items:
             type: string
             format: uuid
-          description: Оборудование из доступного для активистов любого отдела
 
     UpdateStudioInvocationDto:
       type: object
@@ -1140,19 +2121,18 @@ components:
             type: string
             format: uuid
 
-    # ==================== RESPONSES (исходящие) ====================
+    # ==================== RESPONSES ====================
     
     TokenResponse:
       type: object
+      required: [access_token, refresh_token, expires_in, user]
       properties:
         access_token:
           type: string
         refresh_token:
           type: string
-          description: SHOULD
         expires_in:
           type: integer
-          description: Время жизни access токена в секундах
         user:
           $ref: '#/components/schemas/UserResponse'
 
@@ -1170,31 +2150,117 @@ components:
         nice:
           type: integer
           minimum: 1
-          description: Баллы порядочности (CHECK nice > 0 в БД)
         is_admin:
           type: boolean
-        role_in_departments:
-          type: array
-          items:
-            type: object
-            properties:
-              department_id:
-                type: string
-                format: uuid
-              department_name:
-                type: string
-              role:
-                $ref: '#/components/schemas/RoleInDepartment'
-        organizations:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                format: uuid
-              name:
-                type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/UserResponse'
+        - type: object
+          properties:
+            organizations:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrganizationResponse'
+            departments:
+              type: array
+              items:
+                type: object
+                properties:
+                  department:
+                    $ref: '#/components/schemas/DepartmentResponse'
+                  role:
+                    $ref: '#/components/schemas/RoleInDepartment'
+            recent_invocations:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  type:
+                    type: string
+                    enum: [equipment, studio]
+                  event_name:
+                    type: string
+                  status:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+
+    InvitationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        invite_url:
+          type: string
+
+    OrganizationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    OrganizationDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/OrganizationResponse'
+        - type: object
+          properties:
+            users_count:
+              type: integer
+            active_invocations_count:
+              type: integer
+            total_invocations_count:
+              type: integer
+
+    DepartmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    DepartmentDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/DepartmentResponse'
+        - type: object
+          properties:
+            users:
+              type: array
+              items:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+                  role:
+                    $ref: '#/components/schemas/RoleInDepartment'
+            equipment_count:
+              type: integer
+            active_invocations_count:
+              type: integer
 
     EquipmentResponse:
       type: object
@@ -1214,16 +2280,38 @@ components:
           type: boolean
         status:
           $ref: '#/components/schemas/EquipmentStatus'
-        departments:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                format: uuid
-              name:
-                type: string
+        qr_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    EquipmentDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/EquipmentResponse'
+        - type: object
+          properties:
+            departments:
+              type: array
+              items:
+                $ref: '#/components/schemas/DepartmentResponse'
+            current_invocation:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                event_name:
+                  type: string
+                user_name:
+                  type: string
+                start_time:
+                  type: string
+                  format: date-time
+                end_time:
+                  type: string
+                  format: date-time
 
     EquipmentInvocationResponse:
       type: object
@@ -1254,7 +2342,6 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: ID куратора (admin_id в БД)
         admin_name:
           type: string
           nullable: true
@@ -1262,7 +2349,6 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: Взаимоисключающий с department_id
         organization_name:
           type: string
           nullable: true
@@ -1270,7 +2356,6 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: Взаимоисключающий с organization_id
         department_name:
           type: string
           nullable: true
@@ -1279,6 +2364,14 @@ components:
           format: uuid
         user_name:
           type: string
+        equipment_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     EquipmentInvocationDetailResponse:
       allOf:
@@ -1289,6 +2382,20 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/EquipmentResponse'
+            issued_equipment:
+              type: array
+              items:
+                type: object
+                properties:
+                  equipment:
+                    $ref: '#/components/schemas/EquipmentResponse'
+                  issued_at:
+                    type: string
+                    format: date-time
+                  returned_at:
+                    type: string
+                    format: date-time
+                    nullable: true
             messages:
               type: array
               items:
@@ -1325,7 +2432,6 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: ID куратора (admin_id в БД)
         admin_name:
           type: string
           nullable: true
@@ -1344,6 +2450,14 @@ components:
           format: uuid
         user_name:
           type: string
+        equipment_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     StudioInvocationDetailResponse:
       allOf:
@@ -1370,7 +2484,6 @@ components:
         sent_time:
           type: string
           format: date-time
-          description: DEFAULT CURRENT_TIMESTAMP в БД
         invocation_id:
           type: string
           format: uuid
@@ -1396,7 +2509,6 @@ components:
         sent_time:
           type: string
           format: date-time
-          description: DEFAULT CURRENT_TIMESTAMP в БД
         invocation_id:
           type: string
           format: uuid
@@ -1411,17 +2523,27 @@ components:
         recipient_name:
           type: string
 
-    # ==================== ERROR RESPONSES ====================
-    
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-          description: Код ошибки
         message:
           type: string
-          description: Описание ошибки на русском языке (согласно регламенту кодирования)
         details:
           type: object
-          description: Дополнительные детали ошибки
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
