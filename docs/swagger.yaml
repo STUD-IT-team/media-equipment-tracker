@@ -1593,7 +1593,7 @@ paths:
     get:
       tags: [Statistics]
       summary: Дашборд администратора
-      description: Ключевые метрики и показатели системы
+      description: Ключевые метрики и показатели системы (Admin only)
       security:
         - bearerAuth: []
       responses:
@@ -1622,7 +1622,7 @@ paths:
   /statistics/equipment-popularity:
     get:
       tags: [Statistics]
-      summary: Популярность оборудования
+      summary: Популярность оборудования (Admin only)
       security:
         - bearerAuth: []
       parameters:
@@ -1666,7 +1666,7 @@ paths:
   /statistics/monthly-load:
     get:
       tags: [Statistics]
-      summary: Загруженность по месяцам
+      summary: Загруженность по месяцам (Admin only)
       security:
         - bearerAuth: []
       parameters:
@@ -1709,7 +1709,7 @@ paths:
   /statistics/overdue-by-department:
     get:
       tags: [Statistics]
-      summary: Просрочки по отделам
+      summary: Просрочки по отделам (Admin only)
       security:
         - bearerAuth: []
       parameters:
