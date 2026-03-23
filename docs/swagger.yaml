@@ -186,6 +186,8 @@ paths:
           in: query
           schema:
             type: string
+            enum: [created, under_review, changes_required, approved, equipment_issued, equipment_returned, completed, cancelled]
+            description: Фильтр по статусу заявки
         - name: type
           in: query
           schema:
