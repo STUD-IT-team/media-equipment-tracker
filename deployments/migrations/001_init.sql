@@ -31,43 +31,6 @@ CREATE TABLE user_organization
     FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL
 );
 
-CREATE TYPE role_in_department AS ENUM ('trainee', 'activist');
-
-CREATE TABLE user_department
-(
-    role          role_in_department,
-    user_id       UUID,
-    department_id UUID,
-    FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
-    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
-);
-
-CREATE TYPE equipment_status AS ENUM (
-    'available',
-    'issued',
-    'under_maintenance',
-    'unavailable'
-    );
-
-CREATE TABLE equipment
-(
-    id                   UUID PRIMARY KEY,
-    inventory_number     VARCHAR(100) UNIQUE NOT NULL,
-    name                 VARCHAR(255)        NOT NULL,
-    short_name           VARCHAR(100),
-    category             VARCHAR(100)        NOT NULL,
-    available_to_trainee BOOLEAN DEFAULT FALSE,
-    status               equipment_status
-);
-
-CREATE TABLE equipment_department
-(
-    equipment_id  UUID,
-    department_id UUID,
-    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE SET NULL,
-    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
-);
-
 CREATE TYPE equipment_invocation_status AS ENUM (
     'created',
     'under_review',
@@ -106,10 +69,37 @@ ALTER TABLE equipment_invocation
         (organization_id IS NULL AND department_id IS NOT NULL)
         );
 
+CREATE TYPE equipment_status AS ENUM (
+    'available',
+    'issued',
+    'under_maintenance',
+    'unavailable'
+    );
+
+CREATE TABLE equipment
+(
+    id                    UUID PRIMARY KEY,
+    inventory_number      VARCHAR(100) UNIQUE NOT NULL,
+    name                  VARCHAR(255)        NOT NULL,
+    short_name            VARCHAR(100),
+    category              VARCHAR(100)        NOT NULL,
+    available_to_trainee  BOOLEAN DEFAULT FALSE,
+    status                equipment_status,
+    current_invocation_id UUID,
+    FOREIGN KEY (current_invocation_id) REFERENCES equipment_invocation (id) ON DELETE SET NULL
+);
+
+CREATE TYPE equipment_in_invocation_status AS ENUM (
+    'not_issued',
+    'issued',
+    'returned'
+    );
+
 CREATE TABLE equipment_in_invocation
 (
     invocation_id UUID NOT NULL,
     equipment_id  UUID NOT NULL,
+    status        equipment_in_invocation_status,
     FOREIGN KEY (invocation_id) REFERENCES equipment_invocation (id) ON DELETE CASCADE,
     FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE
 );
@@ -126,6 +116,25 @@ CREATE TABLE message_equipment_invocation
     FOREIGN KEY (invocation_id) REFERENCES equipment_invocation (id) ON DELETE CASCADE,
     FOREIGN KEY (sender_id) REFERENCES "user" (id) ON DELETE CASCADE,
     FOREIGN KEY (recipient_id) REFERENCES "user" (id) ON DELETE CASCADE
+);
+
+CREATE TYPE role_in_department AS ENUM ('trainee', 'activist');
+
+CREATE TABLE user_department
+(
+    role          role_in_department,
+    user_id       UUID,
+    department_id UUID,
+    FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
+    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
+);
+
+CREATE TABLE equipment_department
+(
+    equipment_id  UUID,
+    department_id UUID,
+    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE SET NULL,
+    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
 );
 
 CREATE TYPE studio_invocation_status AS ENUM (
@@ -201,8 +210,12 @@ DROP INDEX IF EXISTS idx_message_equipment_invocation_recipient;
 DROP TABLE IF EXISTS message_studio_invocation;
 DROP TABLE IF EXISTS message_equipment_invocation;
 DROP TABLE IF EXISTS studio_invocation;
-DROP TABLE IF EXISTS equipment_invocation;
+DROP TABLE IF EXISTS equipment_department;
+DROP TABLE IF EXISTS equipment_in_invocation;
 DROP TABLE IF EXISTS equipment;
+DROP TABLE IF EXISTS equipment_invocation;
+DROP TABLE IF EXISTS user_department;
+DROP TABLE IF EXISTS user_organization;
 DROP TABLE IF EXISTS "user";
 DROP TABLE IF EXISTS department;
 DROP TABLE IF EXISTS organization;
@@ -211,4 +224,5 @@ DROP TYPE IF EXISTS studio_invocation_status;
 DROP TYPE IF EXISTS equipment_invocation_status;
 DROP TYPE IF EXISTS equipment_status;
 DROP TYPE IF EXISTS role_in_department;
+DROP TYPE IF EXISTS equipment_in_invocation_status;
 -- +goose StatementEnd
