@@ -1012,7 +1012,7 @@ paths:
   /equipment-invocations/{id}/status:
     patch:
       tags: [Equipment Invocations]
-      summary: Изменить статус заявки (Curator или Admin)
+      summary: Изменить статус заявки (Admin only)
       security:
         - bearerAuth: []
       parameters:
@@ -1111,6 +1111,48 @@ paths:
       responses:
         '200':
           description: Оборудование принято
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
+
+  /equipment-invocations/{id}/approved:
+    post:
+      tags: [Equipment Invocations]
+      summary: Одобрить заявку (Curator)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Заявка одобрена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInvocationResponse'
+
+  /equipment-invocations/{id}/request_review:
+    post:
+      tags: [Equipment Invocations]
+      summary: Запросить изменения в заявку (Curator)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Изменения запрошены
           content:
             application/json:
               schema:
