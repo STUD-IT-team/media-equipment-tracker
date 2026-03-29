@@ -14,7 +14,7 @@ type Equipment struct {
 
 	Departments []*Department `gorm:"many2many:equipment_department;foreignKey:ID;joinForeignKey:equipment_id;References:ID;joinReferences:department_id"`
 	//CurrentInvocation      *EquipmentInvocation     `gorm:"foreignKey:CurrentInvocationID;constraint:OnDelete:SET NULL"`
-	EquipmentInInvocations []*EquipmentInInvocation `gorm:"foreignKey:EquipmentID"`
+	//EquipmentInInvocations []*EquipmentInInvocation `gorm:"foreignKey:EquipmentID"`
 }
 
 func (Equipment) TableName() string {

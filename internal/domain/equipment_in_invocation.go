@@ -1,9 +1,11 @@
 package domain
 
+import "github.com/google/uuid"
+
 type EquipmentInInvocation struct {
-	//InvocationID uuid.UUID                   `gorm:"type:uuid;primaryKey"`
-	//EquipmentID  uuid.UUID                   `gorm:"type:uuid;primaryKey"`
-	Status EquipmentInInvocationStatus `gorm:"type:equipment_in_invocation_status"`
+	InvocationID uuid.UUID                   `gorm:"type:uuid;primaryKey"`
+	EquipmentID  uuid.UUID                   `gorm:"type:uuid;primaryKey"`
+	Status       EquipmentInInvocationStatus `gorm:"type:equipment_in_invocation_status"`
 
 	Invocation *EquipmentInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
 	Equipment  *Equipment           `gorm:"foreignKey:EquipmentID;constraint:OnDelete:CASCADE"`

@@ -27,7 +27,7 @@ type EquipmentInvocation struct {
 	Admin                  *User                    `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
 	EquipmentInInvocations []*EquipmentInInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
 	//Messages               []*MessageEquipmentInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
-	Equipments []Equipment `gorm:"many2many:equipment_in_invocation;foreignKey:ID;joinForeignKey:invocation_id;References:ID;joinReferences:equipment_id"`
+	Equipments []*Equipment `gorm:"many2many:equipment_in_invocation;foreignKey:ID;joinForeignKey:invocation_id;References:ID;joinReferences:equipment_id"`
 }
 
 func (EquipmentInvocation) TableName() string {

@@ -23,10 +23,10 @@ type StudioInvocation struct {
 	//UserID         uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
 	//AdminID        uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
 
-	Organization Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
-	Department   Department   `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
-	User         User         `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
-	Admin        User         `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
+	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
+	Department   *Department   `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
+	User         *User         `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
+	Admin        *User         `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
 	//Messages     []MessageStudioInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
 }
 
