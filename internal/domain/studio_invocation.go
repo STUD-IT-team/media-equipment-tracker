@@ -18,16 +18,17 @@ type StudioInvocation struct {
 	Status              StudioInvocationStatus `gorm:"type:studio_invocation_status;not null"`
 	CuratorComment      string                 `gorm:"column:curator_comment;type:text"`
 
-	//OrganizationID uuid.UUID `gorm:"column:organization_id;type:uuid;not null"`
-	//DepartmentID   uuid.UUID `gorm:"column:department_id;type:uuid;not null"`
-	//UserID         uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-	//AdminID        uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
+	OrganizationID uuid.UUID     `gorm:"column:organization_id;type:uuid;not null"`
+	Organization   *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
 
-	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
-	Department   *Department   `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
-	User         *User         `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
-	Admin        *User         `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
-	//Messages     []MessageStudioInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
+	DepartmentID uuid.UUID   `gorm:"column:department_id;type:uuid;not null"`
+	Department   *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
+
+	AdminID uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
+	Admin   *User     `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
+
+	UserID uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
+	User   *User     `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
 }
 
 func (StudioInvocation) TableName() string {

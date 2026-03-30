@@ -16,18 +16,24 @@ type EquipmentInvocation struct {
 	Status              EquipmentInvocationStatus `gorm:"type:equipment_invocation_status"`
 	CuratorComment      string                    `gorm:"column:curator_comment;type:text"`
 
-	//OrganizationID *uuid.UUID `gorm:"column:organization_id;type:uuid"`
-	//DepartmentID   *uuid.UUID `gorm:"column:department_id;type:uuid"`
-	//UserID         uuid.UUID  `gorm:"column:user_id;type:uuid;not null"`
-	//AdminID        *uuid.UUID `gorm:"column:admin_id;type:uuid"`
+	OrganizationID *uuid.UUID `gorm:"column:organization_id;type:uuid"`
+	// Не сохраняется (только ID)
+	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
 
-	Organization           *Organization            `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
-	Department             *Department              `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
-	User                   *User                    `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
-	Admin                  *User                    `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
-	EquipmentInInvocations []*EquipmentInInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
-	//Messages               []*MessageEquipmentInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
-	Equipments []*Equipment `gorm:"many2many:equipment_in_invocation;foreignKey:ID;joinForeignKey:invocation_id;References:ID;joinReferences:equipment_id"`
+	DepartmentID *uuid.UUID `gorm:"column:department_id;type:uuid"`
+	// Не сохраняется (только ID)
+	Department *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
+
+	UserID uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
+	// Не сохраняется (только ID)
+	User *User `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
+
+	AdminID *uuid.UUID `gorm:"column:admin_id;type:uuid"`
+	// Не сохраняется (только ID)
+	Admin *User `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
+
+	// Сохраняется (только сама связь, не создаёт и не обновляет Equipment)
+	Equipment []*EquipmentInInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
 }
 
 func (EquipmentInvocation) TableName() string {
@@ -46,3 +52,57 @@ const (
 	InvocationCompleted         EquipmentInvocationStatus = "completed"
 	InvocationCancelled         EquipmentInvocationStatus = "cancelled"
 )
+
+type EquipmentInInvocationOptions struct {
+	relations        []string
+	withOrganization bool
+	withDepartment   bool
+	withUser         bool
+	withAdmin        bool
+	withEquipment    bool
+}
+
+type EquipmentInInvocationOption func(options *EquipmentInInvocationOptions)
+
+func EquipmentInvocationWithOrganization() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withOrganization = true
+		options.relations = append(options.relations, "Organization")
+	}
+}
+
+func EquipmentInvocationWithDepartment() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withDepartment = true
+		options.relations = append(options.relations, "Department")
+	}
+}
+
+func EquipmentInvocationWithUser() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withUser = true
+		options.relations = append(options.relations, "User")
+	}
+}
+
+func EquipmentInvocationWithAdmin() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withAdmin = true
+		options.relations = append(options.relations, "Admin")
+	}
+}
+
+func EquipmentInvocationWithEquipment() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withEquipment = true
+		options.relations = append(options.relations, "Equipment")
+	}
+}
+
+type EquipmentInvocationRepository interface {
+	Get(id uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInvocation, error)
+	List(with ...EquipmentInInvocationOption) ([]*EquipmentInvocation, error)
+	Create(equipmentInvocation *EquipmentInvocation) error
+	Update(equipmentInvocation *EquipmentInvocation) error
+	Delete(id uuid.UUID) error
+}
