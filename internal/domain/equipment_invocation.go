@@ -102,6 +102,8 @@ func EquipmentInvocationWithEquipment() EquipmentInInvocationOption {
 type EquipmentInvocationRepository interface {
 	Get(id uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInvocation, error)
 	List(with ...EquipmentInInvocationOption) ([]*EquipmentInvocation, error)
+	Reload(equipmentInvocation *EquipmentInvocation, with ...EquipmentInInvocationOption) error
+
 	Create(equipmentInvocation *EquipmentInvocation) error
 	Update(equipmentInvocation *EquipmentInvocation) error
 	Delete(id uuid.UUID) error

@@ -66,6 +66,8 @@ func DepartmentWithEquipmentInvocations() DepartmentOption {
 type DepartmentRepository interface {
 	Get(id uuid.UUID, with ...DepartmentOption) (*Department, error)
 	List(with ...DepartmentOption) ([]*Department, error)
+	Reload(dep *Department, with ...DepartmentOption) error
+	
 	Create(department *Department) error
 	Update(department *Department) error
 	Delete(id uuid.UUID) error

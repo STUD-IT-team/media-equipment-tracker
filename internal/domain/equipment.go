@@ -71,6 +71,8 @@ type EquipmentRepository interface {
 	Get(id uuid.UUID, with ...EquipmentOption) (*Equipment, error)
 	GetUnoccupied(with ...EquipmentOption) ([]*Equipment, error)
 	List(with ...EquipmentOption) ([]*Equipment, error)
+	Reload(equipment *Equipment, with ...EquipmentOption) error
+
 	Create(equipment *Equipment) error
 	Update(equipment *Equipment) error
 	Delete(id uuid.UUID) error

@@ -110,6 +110,8 @@ func UserWithAdminStudioInvocations() UserOption {
 type UserRepository interface {
 	Get(id uuid.UUID, with ...UserOption) (*User, error)
 	List(with ...UserOption) ([]*User, error)
+	Reload(user *User, with ...UserOption) error
+
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uuid.UUID) error
