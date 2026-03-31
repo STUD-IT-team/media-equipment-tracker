@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errors"
 )
 
 type userDepartmentRepository struct {
@@ -25,6 +26,9 @@ func (r *userDepartmentRepository) GetByUserIDAndDepartmentID(ctx context.Contex
 	var userDepartment domain.UserDepartment
 	err := r.db.WithContext(ctx).Where("user_id = ? AND department_id = ?", userID, departmentID).First(&userDepartment).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrNotFound
+		}
 		return nil, err
 	}
 	return &userDepartment, nil

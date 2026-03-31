@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errors"
 )
 
 type equipmentInInvocationRepository struct {
@@ -25,6 +26,9 @@ func (r *equipmentInInvocationRepository) GetByInvocationIDAndEquipmentID(ctx co
 	var equipmentInInvocation domain.EquipmentInInvocation
 	err := r.db.WithContext(ctx).Where("invocation_id = ? AND equipment_id = ?", invocationID, equipmentID).First(&equipmentInInvocation).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrNotFound
+		}
 		return nil, err
 	}
 	return &equipmentInInvocation, nil

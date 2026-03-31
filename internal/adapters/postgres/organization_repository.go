@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errors"
 )
 
 type organizationRepository struct {
@@ -25,6 +26,9 @@ func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*do
 	var organization domain.Organization
 	err := r.db.WithContext(ctx).First(&organization, id).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrNotFound
+		}
 		return nil, err
 	}
 	return &organization, nil

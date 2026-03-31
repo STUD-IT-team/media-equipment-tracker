@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errors"
 )
 
 type messageEquipmentInvocationRepository struct {
@@ -25,6 +26,9 @@ func (r *messageEquipmentInvocationRepository) GetByID(ctx context.Context, id u
 	var message domain.MessageEquipmentInvocation
 	err := r.db.WithContext(ctx).First(&message, id).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrNotFound
+		}
 		return nil, err
 	}
 	return &message, nil
