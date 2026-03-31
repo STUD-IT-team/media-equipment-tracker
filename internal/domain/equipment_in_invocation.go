@@ -22,3 +22,38 @@ const (
 	EquipmentIssued    EquipmentInInvocationStatus = "issued"
 	EquipmentReturned  EquipmentInInvocationStatus = "returned"
 )
+
+type EquipmentInInvocationOptions struct {
+	relations      []string
+	withInvocation bool
+	withEquipment  bool
+}
+
+func (o *EquipmentInInvocationOptions) Relations() []string {
+	return o.relations
+}
+
+type EquipmentInInvocationOption func(*EquipmentInInvocationOptions)
+
+func WithInvocation() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withInvocation = true
+		options.relations = append(options.relations, "Invocation")
+	}
+}
+
+func WithEquipment() EquipmentInInvocationOption {
+	return func(options *EquipmentInInvocationOptions) {
+		options.withEquipment = true
+		options.relations = append(options.relations, "Equipment")
+	}
+}
+
+type EquipmentInInvocationRepository interface {
+	Get(invocationID uuid.UUID, equipmentID uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInInvocation, error)
+	GetByInvocation(invocationID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
+	GetByEquipment(equipmentID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
+	Create(equipmentInInvocation *EquipmentInInvocation) error
+	Update(equipmentInInvocation *EquipmentInInvocation) error
+	Delete(invocationID uuid.UUID, equipmentID uuid.UUID) error
+}

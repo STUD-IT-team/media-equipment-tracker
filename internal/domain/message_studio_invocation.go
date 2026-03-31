@@ -25,3 +25,37 @@ type MessageStudioInvocation struct {
 func (MessageStudioInvocation) TableName() string {
 	return "message_studio_invocation"
 }
+
+type MessageStudioInvocationOptions struct {
+	relations     []string
+	WithSender    bool
+	WithRecipient bool
+}
+
+func (o *MessageStudioInvocationOptions) Relations() []string {
+	return o.relations
+}
+
+type MessageStudioInvocationOption func(options *MessageStudioInvocationOptions)
+
+func MessageStudioInvocationWithSender() MessageStudioInvocationOption {
+	return func(options *MessageStudioInvocationOptions) {
+		options.WithSender = true
+		options.relations = append(options.relations, "Sender")
+	}
+}
+
+func MessageStudioInvocationWithRecipient() MessageStudioInvocationOption {
+	return func(options *MessageStudioInvocationOptions) {
+		options.WithRecipient = true
+		options.relations = append(options.relations, "Recipient")
+	}
+}
+
+type MessageStudioInvocationRepository interface {
+	Get(id uuid.UUID, with ...MessageStudioInvocationOption) (*MessageStudioInvocation, error)
+	GetInvocation(invocationID uuid.UUID, with ...MessageStudioInvocationOption) ([]*MessageStudioInvocation, error)
+	Create(messageStudioInvocation *MessageStudioInvocation) error
+	Update(messageStudioInvocation *MessageStudioInvocation) error
+	Delete(id uuid.UUID) error
+}

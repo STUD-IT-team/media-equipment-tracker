@@ -32,6 +32,10 @@ type MessageEquipmentInvocationOptions struct {
 	WithRecipient bool
 }
 
+func (o *MessageEquipmentInvocationOptions) Relations() []string {
+	return o.relations
+}
+
 type MessageEquipmentInvocationOption func(options *MessageEquipmentInvocationOptions)
 
 func MessageEquipmentInvocationWithSender() MessageEquipmentInvocationOption {

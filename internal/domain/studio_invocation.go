@@ -58,6 +58,10 @@ type StudioInvocationOptions struct {
 	withUser         bool
 }
 
+func (o *StudioInvocationOptions) Relations() []string {
+	return o.relations
+}
+
 type StudioInvocationOption func(options *StudioInvocationOptions)
 
 func StudioInvocationWithOrganization() StudioInvocationOption {

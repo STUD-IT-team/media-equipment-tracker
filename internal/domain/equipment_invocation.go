@@ -53,7 +53,7 @@ const (
 	InvocationCancelled         EquipmentInvocationStatus = "cancelled"
 )
 
-type EquipmentInInvocationOptions struct {
+type EquipmentInvocationOptions struct {
 	relations        []string
 	withOrganization bool
 	withDepartment   bool
@@ -62,47 +62,51 @@ type EquipmentInInvocationOptions struct {
 	withEquipment    bool
 }
 
-type EquipmentInInvocationOption func(options *EquipmentInInvocationOptions)
+func (o *EquipmentInvocationOptions) Relations() []string {
+	return o.relations
+}
 
-func EquipmentInvocationWithOrganization() EquipmentInInvocationOption {
-	return func(options *EquipmentInInvocationOptions) {
+type EquipmentInvocationOption func(options *EquipmentInvocationOptions)
+
+func EquipmentInvocationWithOrganization() EquipmentInvocationOption {
+	return func(options *EquipmentInvocationOptions) {
 		options.withOrganization = true
 		options.relations = append(options.relations, "Organization")
 	}
 }
 
-func EquipmentInvocationWithDepartment() EquipmentInInvocationOption {
-	return func(options *EquipmentInInvocationOptions) {
+func EquipmentInvocationWithDepartment() EquipmentInvocationOption {
+	return func(options *EquipmentInvocationOptions) {
 		options.withDepartment = true
 		options.relations = append(options.relations, "Department")
 	}
 }
 
-func EquipmentInvocationWithUser() EquipmentInInvocationOption {
-	return func(options *EquipmentInInvocationOptions) {
+func EquipmentInvocationWithUser() EquipmentInvocationOption {
+	return func(options *EquipmentInvocationOptions) {
 		options.withUser = true
 		options.relations = append(options.relations, "User")
 	}
 }
 
-func EquipmentInvocationWithAdmin() EquipmentInInvocationOption {
-	return func(options *EquipmentInInvocationOptions) {
+func EquipmentInvocationWithAdmin() EquipmentInvocationOption {
+	return func(options *EquipmentInvocationOptions) {
 		options.withAdmin = true
 		options.relations = append(options.relations, "Admin")
 	}
 }
 
-func EquipmentInvocationWithEquipment() EquipmentInInvocationOption {
-	return func(options *EquipmentInInvocationOptions) {
+func EquipmentInvocationWithEquipment() EquipmentInvocationOption {
+	return func(options *EquipmentInvocationOptions) {
 		options.withEquipment = true
 		options.relations = append(options.relations, "Equipment")
 	}
 }
 
 type EquipmentInvocationRepository interface {
-	Get(id uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInvocation, error)
-	List(with ...EquipmentInInvocationOption) ([]*EquipmentInvocation, error)
-	Reload(equipmentInvocation *EquipmentInvocation, with ...EquipmentInInvocationOption) error
+	Get(id uuid.UUID, with ...EquipmentInvocationOption) (*EquipmentInvocation, error)
+	List(with ...EquipmentInvocationOption) ([]*EquipmentInvocation, error)
+	Reload(equipmentInvocation *EquipmentInvocation, with ...EquipmentInvocationOption) error
 
 	Create(equipmentInvocation *EquipmentInvocation) error
 	Update(equipmentInvocation *EquipmentInvocation) error

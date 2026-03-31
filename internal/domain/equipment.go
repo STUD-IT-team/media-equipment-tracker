@@ -44,6 +44,10 @@ type EquipmentOptions struct {
 	withEquipmentInInvocations bool
 }
 
+func (o *EquipmentOptions) Relations() []string {
+	return o.relations
+}
+
 type EquipmentOption func(options *EquipmentOptions)
 
 func EquipmentWithDepartments() EquipmentOption {

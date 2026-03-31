@@ -63,6 +63,10 @@ type UserOptions struct {
 	withAdminStudioInvocations    bool
 }
 
+func (o *UserOptions) Relations() []string {
+	return o.relations
+}
+
 type UserOption func(options *UserOptions)
 
 func UserWithOrganizations() UserOption {
