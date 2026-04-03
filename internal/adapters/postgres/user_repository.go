@@ -1,0 +1,103 @@
+package postgres
+
+import (
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errors"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type UserRepository struct {
+	db *gorm.DB
+}
+
+func NewUserRepository(db *gorm.DB) domain.UserRepository {
+	return &UserRepository{db: db}
+}
+
+func (r *UserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*domain.User, error) {
+	options := &domain.UserOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	var user domain.User
+	query := r.db
+	for _, rel := range options.Relations() {
+		query = query.Preload(rel)
+	}
+
+	err := query.First(&user, "id = ?", id).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.NewEntityNotFoundError("User", id)
+		}
+		return nil, errors.NewRepositoryError("get", err)
+	}
+
+	return &user, nil
+}
+
+func (r *UserRepository) List(opts ...domain.UserOption) ([]*domain.User, error) {
+	options := &domain.UserOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	var users []*domain.User
+	query := r.db
+	for _, rel := range options.Relations() {
+		query = query.Preload(rel)
+	}
+
+	err := query.Find(&users).Error
+	if err != nil {
+		return nil, errors.NewRepositoryError("list", err)
+	}
+
+	return users, nil
+}
+
+func (r *UserRepository) Reload(user *domain.User, opts ...domain.UserOption) error {
+	options := &domain.UserOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	query := r.db
+	for _, rel := range options.Relations() {
+		query = query.Preload(rel)
+	}
+
+	err := query.Find(user, "id = ?", user.ID).Error
+	if err != nil {
+		return errors.NewRepositoryError("reload", err)
+	}
+
+	return nil
+}
+
+func (r *UserRepository) Create(user *domain.User) error {
+	err := r.db.Create(user).Error
+	if err != nil {
+		return errors.NewRepositoryError("create", err)
+	}
+	return nil
+}
+
+func (r *UserRepository) Update(user *domain.User) error {
+	err := r.db.Save(user).Error
+	if err != nil {
+		return errors.NewRepositoryError("update", err)
+	}
+	return nil
+}
+
+func (r *UserRepository) Delete(id uuid.UUID) error {
+	err := r.db.Delete(&domain.User{}, "id = ?", id).Error
+	if err != nil {
+		return errors.NewRepositoryError("delete", err)
+	}
+	return nil
+}

@@ -18,16 +18,21 @@ type StudioInvocation struct {
 	Status              StudioInvocationStatus `gorm:"type:studio_invocation_status;not null"`
 	CuratorComment      string                 `gorm:"column:curator_comment;type:text"`
 
-	//OrganizationID uuid.UUID `gorm:"column:organization_id;type:uuid;not null"`
-	//DepartmentID   uuid.UUID `gorm:"column:department_id;type:uuid;not null"`
-	//UserID         uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-	//AdminID        uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
-
+	OrganizationID uuid.UUID `gorm:"column:organization_id;type:uuid;not null"`
+	// Не сохраняется (только ID)
 	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
-	Department   *Department   `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
-	User         *User         `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
-	Admin        *User         `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
-	//Messages     []MessageStudioInvocation `gorm:"foreignKey:InvocationID;constraint:OnDelete:CASCADE"`
+
+	DepartmentID uuid.UUID `gorm:"column:department_id;type:uuid;not null"`
+	// Не сохраняется (только ID)
+	Department *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
+
+	AdminID uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
+	// Не сохраняется (только ID)
+	Admin *User `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
+
+	UserID uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
+	// Не сохраняется (только ID)
+	User *User `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
 }
 
 func (StudioInvocation) TableName() string {
@@ -44,3 +49,55 @@ const (
 	StudioCompleted       StudioInvocationStatus = "completed"
 	StudioCancelled       StudioInvocationStatus = "cancelled"
 )
+
+type StudioInvocationOptions struct {
+	relations        []string
+	withOrganization bool
+	withDepartment   bool
+	withAdmin        bool
+	withUser         bool
+}
+
+func (o *StudioInvocationOptions) Relations() []string {
+	return o.relations
+}
+
+type StudioInvocationOption func(options *StudioInvocationOptions)
+
+func StudioInvocationWithOrganization() StudioInvocationOption {
+	return func(options *StudioInvocationOptions) {
+		options.withOrganization = true
+		options.relations = append(options.relations, "Organization")
+	}
+}
+
+func StudioInvocationWithDepartment() StudioInvocationOption {
+	return func(options *StudioInvocationOptions) {
+		options.withDepartment = true
+		options.relations = append(options.relations, "Department")
+	}
+}
+
+func StudioInvocationWithAdmin() StudioInvocationOption {
+	return func(options *StudioInvocationOptions) {
+		options.withAdmin = true
+		options.relations = append(options.relations, "Admin")
+	}
+}
+
+func StudioInvocationWithUser() StudioInvocationOption {
+	return func(options *StudioInvocationOptions) {
+		options.withUser = true
+		options.relations = append(options.relations, "User")
+	}
+}
+
+type StudioInvocationRepository interface {
+	Get(id uuid.UUID, with ...StudioInvocationOption) (*StudioInvocation, error)
+	List(with ...StudioInvocationOption) ([]*StudioInvocation, error)
+	Reload(studioInvocation *StudioInvocation, with ...StudioInvocationOption) error
+
+	Create(studioInvocation *StudioInvocation) error
+	Update(studioInvocation *StudioInvocation) error
+	Delete(id uuid.UUID) error
+}
