@@ -3,6 +3,7 @@ package tokenmaker
 import (
 	"errors"
 	"fmt"
+	"media-equipment-tracker/internal/domain"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -24,8 +25,8 @@ func NewJWTMaker(secretKey string) (TokenMaker, error) {
 	return &JWTMaker{secretKey}, nil
 }
 
-func (maker *JWTMaker) CreateToken(userID uuid.UUID, role RoleAuth, duration time.Duration) (string, error) {
-	payload, err := NewPayload(userID, role, duration)
+func (maker *JWTMaker) CreateToken(userID uuid.UUID, roles []domain.RoleAuth, duration time.Duration) (string, error) {
+	payload, err := domain.NewTokenPayload(userID, roles, duration)
 	if err != nil {
 		return "", err
 	}
@@ -34,7 +35,7 @@ func (maker *JWTMaker) CreateToken(userID uuid.UUID, role RoleAuth, duration tim
 	return jwtToken.SignedString([]byte(maker.secretKey))
 }
 
-func (maker *JWTMaker) VerifyToken(token string, role RoleAuth) (*Payload, error) {
+func (maker *JWTMaker) VerifyToken(token string, roles []domain.RoleAuth) (*domain.TokenPayload, error) {
 	// проверить заголовок токена, и убедиться, что алгоритм подписи соответствует тому, который используется для подписи токенов.
 	keyFunc := func(t *jwt.Token) (interface{}, error) {
 		_, ok := t.Method.(*jwt.SigningMethodHMAC) // потому что используем HS256
@@ -44,7 +45,7 @@ func (maker *JWTMaker) VerifyToken(token string, role RoleAuth) (*Payload, error
 		return []byte(maker.secretKey), nil
 	}
 
-	jwtToken, err := jwt.ParseWithClaims(token, &Payload{}, keyFunc)
+	jwtToken, err := jwt.ParseWithClaims(token, &domain.TokenPayload{}, keyFunc)
 	if err != nil {
 		verr, ok := err.(*jwt.ValidationError)
 		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
@@ -53,12 +54,16 @@ func (maker *JWTMaker) VerifyToken(token string, role RoleAuth) (*Payload, error
 		return nil, ErrInvalidToken
 	}
 
-	payload, ok := jwtToken.Claims.(*Payload)
+	payload, ok := jwtToken.Claims.(*domain.TokenPayload)
 	if !ok {
 		return nil, ErrInvalidToken
 	}
-	if payload.Role != role {
-		return nil, ErrIncorrectRole
+	for _, role := range roles {
+		for _, expectedRole := range payload.Roles {
+			if expectedRole == role {
+				return nil, ErrIncorrectRole
+			}
+		}
 	}
 	return payload, nil
 }

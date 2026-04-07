@@ -2,9 +2,10 @@ package auth_api
 
 import (
 	"errors"
-	authuser "media-equipment-tracker/internal/application/authservice/auth_user"
+	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/handlers/auth-api/dto"
+	"media-equipment-tracker/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,7 @@ func NewAuthUserRouter(router *gin.RouterGroup, service authuser.AuthUserService
 	gr := router.Group("auth")
 	gr.POST("/register", r.Register)
 	gr.POST("/login", r.Login)
+	gr.POST("/logout", r.Logout)
 	return r
 }
 
@@ -65,4 +67,14 @@ func (r *AuthUserRouter) Login(c *gin.Context) {
 		AccessToken: accessToken,
 	}
 	c.JSON(http.StatusOK, rsp)
+}
+
+func (r *AuthUserRouter) Logout(c *gin.Context) {
+	ctx := c.Request.Context()
+	accessToken, err := utils.TokenFromHeader(c)
+	if err != nil {
+		return
+	}
+	r.service.LogoutUser(ctx, accessToken)
+	c.JSON(http.StatusOK, gin.H{})
 }
