@@ -1,10 +1,11 @@
-package postgres
+package postgres_repo
 
 import (
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errs"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/domain/errors"
 )
 
 type MessageEquipmentInvocationRepository struct {
@@ -32,9 +33,9 @@ func (r *MessageEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.
 	query := r.applyOptions(with)
 	if err := query.First(&msg, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewEntityNotFoundError("MessageEquipmentInvocation", id)
+			return nil, errs.NewEntityNotFoundError("MessageEquipmentInvocation", id)
 		}
-		return nil, errors.NewRepositoryError("get", err)
+		return nil, errs.NewRepositoryError("get", err)
 	}
 	return &msg, nil
 }
@@ -43,28 +44,28 @@ func (r *MessageEquipmentInvocationRepository) GetInvocation(invocationID uuid.U
 	var messages []*domain.MessageEquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.Where("invocation_id = ?", invocationID).Find(&messages).Error; err != nil {
-		return nil, errors.NewRepositoryError("get_invocation", err)
+		return nil, errs.NewRepositoryError("get_invocation", err)
 	}
 	return messages, nil
 }
 
 func (r *MessageEquipmentInvocationRepository) Create(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
 	if err := r.db.Create(messageEquipmentInvocation).Error; err != nil {
-		return errors.NewRepositoryError("create", err)
+		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *MessageEquipmentInvocationRepository) Update(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
 	if err := r.db.Save(messageEquipmentInvocation).Error; err != nil {
-		return errors.NewRepositoryError("update", err)
+		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
 func (r *MessageEquipmentInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.MessageEquipmentInvocation{}, "id = ?", id).Error; err != nil {
-		return errors.NewRepositoryError("delete", err)
+		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
 }

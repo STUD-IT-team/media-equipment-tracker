@@ -3,58 +3,62 @@ package main
 import (
 	"fmt"
 	"log"
-	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/adapters/postgres_repo"
+	"media-equipment-tracker/internal/application/authservice/auth_user"
+	"media-equipment-tracker/internal/application/authservice/hasher"
+	tokenmaker "media-equipment-tracker/internal/application/authservice/token_maker"
+	auth_api "media-equipment-tracker/internal/handlers/auth-api"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func getUsers(db *gorm.DB) {
-	var users []domain.User
-
-	// Вариант 1: Получить всех пользователей
-	result := db.Find(&users)
-	if result.Error != nil {
-		log.Printf("Error getting users: %v", result.Error)
-		return
-	}
-
-	fmt.Printf("\n=== Все пользователи (найдено: %d) ===\n", result.RowsAffected)
-	for _, user := range users {
-		fmt.Printf("ID: %s, Name: %s, Email: %s, IsAdmin: %v\n",
-			user.ID, user.FullName, user.Email, user.IsAdmin)
-	}
-}
+const (
+	postgresHost        = "localhost"
+	postgresPort        = 5432
+	postgresUser        = "uuser"
+	postgresPassword    = "ppassword"
+	postgresDatabase    = "eqtracker"
+	tokenSymmetricKey   = "12345678901234567890123456789012"
+	accessTokenDuration = 24 * time.Hour
+	api_version         = "/api/v1"
+	appPort             = 8080
+)
 
 func main() {
-	dsn := "host=localhost user=uuser password=ppassword dbname=eqtracker port=5432 sslmode=disable TimeZone=UTC"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // Включаем логирование SQL запросов
-		NowFunc: func() time.Time {
-			return time.Now().UTC()
-		},
-	})
+	engine := gin.New()
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable", postgresHost, postgresUser, postgresPassword, postgresDatabase, postgresPort)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	sqlDB, err := db.DB()
+	// Repository
+	userRepo := postgres_repo.NewUserRepository(db)
+
+	// Auth
+	tokenMaker, err := tokenmaker.NewTokenMaker(tokenSymmetricKey)
 	if err != nil {
-		log.Fatal("Failed to get sql.DB:", err)
+		panic(err.Error())
 	}
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
-
-	if err := sqlDB.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+	hasher, err := hasher.NewHasher()
+	if err != nil {
+		panic(err.Error())
 	}
+	authUserServ := auth_user.NewAuthUser(tokenMaker, hasher, accessTokenDuration, userRepo)
 
-	fmt.Println("Successfully connected to database!")
+	// Groups
 
-	getUsers(db)
-	//getUserByEmail(db, "john@example.com")
-	//getEquipmentWithDepartments(db)
+	apiGroup := engine.Group(api_version)
+
+	// Routers
+	authUserRouter := auth_api.NewAuthUserRouter(apiGroup, authUserServ)
+	_ = authUserRouter
+
+	if err := engine.Run(fmt.Sprintf(":%d", appPort)); err != nil {
+		panic(err.Error())
+	}
 }

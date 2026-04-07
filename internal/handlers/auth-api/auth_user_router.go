@@ -1,0 +1,68 @@
+package auth_api
+
+import (
+	"errors"
+	authuser "media-equipment-tracker/internal/application/authservice/auth_user"
+	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/internal/handlers/auth-api/dto"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+type AuthUserRouter struct {
+	service authuser.AuthUserService
+}
+
+func NewAuthUserRouter(router *gin.RouterGroup, service authuser.AuthUserService) AuthUserRouter {
+	r := AuthUserRouter{
+		service: service,
+	}
+	gr := router.Group("auth")
+	gr.POST("/register", r.Register)
+	gr.POST("/login", r.Login)
+	return r
+}
+
+func (r *AuthUserRouter) Register(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req dto.RegisterUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := r.service.RegisterUser(ctx, req); err != nil {
+		if errors.Is(err, errs.EntityNotFoundError{}) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (r *AuthUserRouter) Login(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req dto.LoginUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	accessToken, err := r.service.LoginUser(ctx, req)
+	if err != nil {
+		if errors.Is(err, errs.EntityNotFoundError{}) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	rsp := dto.LoginUserResponse{
+		AccessToken: accessToken,
+	}
+	c.JSON(http.StatusOK, rsp)
+}

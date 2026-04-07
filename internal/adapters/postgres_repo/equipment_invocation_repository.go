@@ -1,10 +1,11 @@
-package postgres
+package postgres_repo
 
 import (
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errs"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/domain/errors"
 )
 
 type EquipmentInvocationRepository struct {
@@ -32,9 +33,9 @@ func (r *EquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.Equipme
 	query := r.applyOptions(with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewEntityNotFoundError("EquipmentInvocation", id)
+			return nil, errs.NewEntityNotFoundError("EquipmentInvocation", id)
 		}
-		return nil, errors.NewRepositoryError("get", err)
+		return nil, errs.NewRepositoryError("get", err)
 	}
 	return &inv, nil
 }
@@ -43,7 +44,7 @@ func (r *EquipmentInvocationRepository) List(with ...domain.EquipmentInvocationO
 	var invocations []*domain.EquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.Find(&invocations).Error; err != nil {
-		return nil, errors.NewRepositoryError("list", err)
+		return nil, errs.NewRepositoryError("list", err)
 	}
 	return invocations, nil
 }
@@ -51,28 +52,28 @@ func (r *EquipmentInvocationRepository) List(with ...domain.EquipmentInvocationO
 func (r *EquipmentInvocationRepository) Reload(equipmentInvocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
 	query := r.applyOptions(with)
 	if err := query.First(equipmentInvocation, "id = ?", equipmentInvocation.ID).Error; err != nil {
-		return errors.NewRepositoryError("reload", err)
+		return errs.NewRepositoryError("reload", err)
 	}
 	return nil
 }
 
 func (r *EquipmentInvocationRepository) Create(equipmentInvocation *domain.EquipmentInvocation) error {
 	if err := r.db.Create(equipmentInvocation).Error; err != nil {
-		return errors.NewRepositoryError("create", err)
+		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *EquipmentInvocationRepository) Update(equipmentInvocation *domain.EquipmentInvocation) error {
 	if err := r.db.Save(equipmentInvocation).Error; err != nil {
-		return errors.NewRepositoryError("update", err)
+		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
 func (r *EquipmentInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.EquipmentInvocation{}, "id = ?", id).Error; err != nil {
-		return errors.NewRepositoryError("delete", err)
+		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
 }
