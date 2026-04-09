@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"media-equipment-tracker/internal/adapters/in_mem"
+	"media-equipment-tracker/internal/adapters/inmem"
 	"media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	tokenmaker "media-equipment-tracker/internal/domain"
@@ -15,15 +15,14 @@ type TokenVerifier interface {
 	VerifyByToken(tokenStr string, needRoles []domain.RoleAuth) (*tokenmaker.TokenPayload, error)
 }
 
-func AuthMiddleware(authServ TokenVerifier, needRoles []domain.RoleAuth) gin.HandlerFunc {
+func AuthMiddleware(authZ authzservice.AuthZ, tokenRep inmem.TokenRepository, authServ TokenVerifier, needRoles []domain.RoleAuth) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authZ := authz_service.GetAuthZ()
 		accessToken, err := utils.TokenFromHeader(c)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
-		tokenRep := in_mem.GetTokenRepository()
+
 		if !tokenRep.Check(accessToken) {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}

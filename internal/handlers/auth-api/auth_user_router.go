@@ -4,7 +4,6 @@ import (
 	"errors"
 	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
 	"media-equipment-tracker/internal/domain/errs"
-	"media-equipment-tracker/internal/handlers/auth-api/dto"
 	"media-equipment-tracker/internal/utils"
 	"net/http"
 
@@ -29,7 +28,7 @@ func NewAuthUserRouter(router *gin.RouterGroup, service authuser.AuthUserService
 func (r *AuthUserRouter) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var req dto.RegisterUserRequest
+	var req authuser.RegisterUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -48,7 +47,7 @@ func (r *AuthUserRouter) Register(c *gin.Context) {
 func (r *AuthUserRouter) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var req dto.LoginUserRequest
+	var req authuser.LoginUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -63,7 +62,7 @@ func (r *AuthUserRouter) Login(c *gin.Context) {
 		return
 	}
 
-	rsp := dto.LoginUserResponse{
+	rsp := authuser.LoginUserResponse{
 		AccessToken: accessToken,
 	}
 	c.JSON(http.StatusOK, rsp)

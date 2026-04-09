@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"media-equipment-tracker/cmd/app/config"
+	"media-equipment-tracker/internal/adapters/inmem"
 	"media-equipment-tracker/internal/adapters/postgres_repo"
 	"media-equipment-tracker/internal/application/auth_service/auth_user"
 	"media-equipment-tracker/internal/application/auth_service/hasher"
 	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
-	"media-equipment-tracker/internal/config"
+	"media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	auth_api "media-equipment-tracker/internal/handlers/auth-api"
@@ -29,9 +31,10 @@ func main() {
 	}
 
 	// Repository
-	userRepo := postgres_repo.NewUserRepository(db)
+	userRepo := postgresrepo.NewUserRepository(db)
 
 	// Auth
+	authZ := authzservice.NewAuthZ()
 	tokenMaker, err := tokenmaker.NewTokenMaker(config.TokenSymmetricKey)
 	if err != nil {
 		panic(err.Error())
@@ -40,7 +43,11 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	authUserServ := auth_user.NewAuthUser(tokenMaker, hasher, config.AccessTokenDuration, userRepo)
+	tokenRep := inmem.NewTokenRepository()
+	authUserServ, err := authuser.NewAuthUser(tokenMaker, hasher, config.AccessTokenDuration, userRepo, tokenRep)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
@@ -48,10 +55,10 @@ func main() {
 
 	apiGroup := engine.Group(config.Api_version)
 	usersGroup := apiGroup.Group("/")
-	usersGroup.Use(middleware.AuthMiddleware(authUserServ, []domain.RoleAuth{}))
+	usersGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{}))
 
 	adminsGroup := apiGroup.Group("/")
-	adminsGroup.Use(middleware.AuthMiddleware(authUserServ, []domain.RoleAuth{domain.AdminRole}))
+	adminsGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{domain.AdminRole}))
 
 	// Routers
 	authUserRouter := auth_api.NewAuthUserRouter(apiGroup, authUserServ)

@@ -1,14 +1,10 @@
-package authz_service
+package authzservice
 
 import (
 	"context"
 	"errors"
 	"media-equipment-tracker/internal/domain"
-	"sync"
 )
-
-var authz AuthZ
-var authzMutex sync.Mutex
 
 type authZContextKey int
 
@@ -25,14 +21,8 @@ type AuthZ interface {
 	TokenPayloadFromContext(ctx context.Context) (domain.TokenPayload, error)
 }
 
-func GetAuthZ() AuthZ {
-	authzMutex.Lock()
-	defer authzMutex.Unlock()
-	if authz != nil {
-		return authz
-	}
-	authz = &authZ{}
-	return authz
+func NewAuthZ() AuthZ {
+	return &authZ{}
 }
 
 type authZ struct {

@@ -1,13 +1,10 @@
-package in_mem
+package inmem
 
 import (
-	"media-equipment-tracker/internal/config"
+	"media-equipment-tracker/cmd/app/config"
 	"sync"
 	"time"
 )
-
-var tokenRepository TokenRepository
-var tokenRepositoryMutex sync.Mutex
 
 type TokenRepository interface {
 	Check(token string) bool
@@ -15,6 +12,13 @@ type TokenRepository interface {
 	Delete(token string)
 	cleanupExpired()
 }
+
+func NewTokenRepository() TokenRepository {
+	return getMapTokenRepositoryWithTTL()
+}
+
+var tokenRepository *mapTokenRepositoryWithTTL
+var tokenRepositoryMutex sync.Mutex
 
 type tokenEntry struct {
 	expiresAt time.Time
@@ -27,7 +31,7 @@ type mapTokenRepositoryWithTTL struct {
 	stopChan chan struct{}
 }
 
-func GetTokenRepository() TokenRepository {
+func getMapTokenRepositoryWithTTL() *mapTokenRepositoryWithTTL {
 	tokenRepositoryMutex.Lock()
 	defer tokenRepositoryMutex.Unlock()
 

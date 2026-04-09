@@ -1,21 +1,39 @@
-package auth_user
+package authuser
 
 import (
 	"context"
 	"errors"
-	"media-equipment-tracker/internal/adapters/in_mem"
+	"media-equipment-tracker/internal/adapters/inmem"
 	"media-equipment-tracker/internal/application/auth_service/hasher"
 	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
 	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/handlers/auth-api/dto"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+var (
+	ErrCreateAuthUserService = errors.New("error create auth user service")
+)
+
+type LoginUserRequest struct {
+	Email    string `json:"email" binding:"required,min=4,max=50" example:"test@mail.ru"`
+	Password string `json:"password" binding:"required,min=4" example:"12345678"`
+}
+
+type LoginUserResponse struct {
+	AccessToken string `json:"access_token" example:"7249ede8-5083-4bd6-ad09-0b5fa3c5f2de"`
+}
+
+type RegisterUserRequest struct {
+	FullName string `json:"full_name" binding:"required,min=4,max=50" example:"Ivan Ivanov Ivanovich"`
+	Email    string `json:"email" binding:"required,min=4,max=50" example:"test@mail.ru"`
+	Password string `json:"password" binding:"required,min=4" example:"12345678"`
+}
+
 type AuthUserService interface {
-	LoginUser(ctx context.Context, lur dto.LoginUserRequest) (string, error)
-	RegisterUser(ctx context.Context, rur dto.RegisterUserRequest) error
+	LoginUser(ctx context.Context, lur LoginUserRequest) (string, error)
+	RegisterUser(ctx context.Context, rur RegisterUserRequest) error
 	VerifyByToken(token string, needRoles []domain.RoleAuth) (*domain.TokenPayload, error)
 	LogoutUser(ctx context.Context, token string)
 }
@@ -24,25 +42,29 @@ type authUserService struct {
 	tokenMaker          tokenmaker.TokenMaker
 	hasher              hasher.Hasher
 	accessTokenDuration time.Duration
-	userrep             domain.UserRepository
-	tokenRep            in_mem.TokenRepository
+	userRep             domain.UserRepository
+	tokenRep            inmem.TokenRepository
 }
 
 func NewAuthUser(
 	tokenMaker tokenmaker.TokenMaker, hasher hasher.Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
-) AuthUserService {
+	tokenRep inmem.TokenRepository,
+) (AuthUserService, error) {
+	if tokenMaker == nil || hasher == nil || urep == nil || accessTokenDuration <= 0 {
+		return nil, ErrCreateAuthUserService
+	}
 	server := &authUserService{
 		tokenMaker:          tokenMaker,
 		hasher:              hasher,
 		accessTokenDuration: accessTokenDuration,
-		userrep:             urep,
-		tokenRep:            in_mem.GetTokenRepository(),
+		userRep:             urep,
+		tokenRep:            tokenRep,
 	}
-	return server
+	return server, nil
 }
 
-func (s *authUserService) LoginUser(ctx context.Context, lur dto.LoginUserRequest) (string, error) {
-	user, err := s.userrep.GetByEmail(lur.Email)
+func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (string, error) {
+	user, err := s.userRep.GetByEmail(lur.Email)
 	if err != nil {
 		return "", err
 	}
@@ -63,12 +85,12 @@ func (s *authUserService) LoginUser(ctx context.Context, lur dto.LoginUserReques
 	return accessToken, nil
 }
 
-func (s *authUserService) RegisterUser(ctx context.Context, rur dto.RegisterUserRequest) error {
+func (s *authUserService) RegisterUser(ctx context.Context, rur RegisterUserRequest) error {
 	hashedPassword, err := s.hasher.HashPassword(rur.Password)
 	if err != nil {
 		return err
 	}
-	return s.userrep.Create(&domain.User{
+	return s.userRep.Create(&domain.User{
 		ID:           uuid.New(),
 		FullName:     rur.FullName,
 		Email:        rur.Email,

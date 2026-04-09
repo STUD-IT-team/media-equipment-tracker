@@ -3,7 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"media-equipment-tracker/internal/config"
+	"media-equipment-tracker/cmd/app/config"
 	"strings"
 
 	"github.com/gin-gonic/gin"

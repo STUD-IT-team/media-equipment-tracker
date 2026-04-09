@@ -1,4 +1,4 @@
-package postgres_repo
+package postgresrepo
 
 import (
 	"media-equipment-tracker/internal/domain"
