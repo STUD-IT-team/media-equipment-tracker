@@ -17,6 +17,7 @@ docker compose -f ./deployments/docker-compose.test.yaml up -d
 CONTAINER_ID=$(docker compose -f ./deployments/docker-compose.test.yaml ps -q ${PGTEST_CONTAINER_NAME})
 if [ -z "$CONTAINER_ID" ]; then
     echo "Container ${PGTEST_CONTAINER_NAME} not found"
+    docker compose -f ./deployments/docker-compose.test.yaml down
     exit 1
 fi
 
@@ -37,7 +38,10 @@ done
 
 if [ $ELAPSED -ge $TIMEOUT ]; then
     echo "Container did not become healthy within ${TIMEOUT} seconds"
+    docker compose -f ./deployments/docker-compose.test.yaml down
     exit 1
 fi
 
 go test -v -tags=integration ./...
+
+docker compose -f ./deployments/docker-compose.test.yaml down
