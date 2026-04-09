@@ -1,8 +1,8 @@
-package postgres
+package postgresrepo
 
 import (
 	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/domain/errors"
+	"media-equipment-tracker/internal/domain/errs"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -33,9 +33,9 @@ func (r *DepartmentRepository) Get(id uuid.UUID, with ...domain.DepartmentOption
 	query := r.applyOptions(with)
 	if err := query.First(&department, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewEntityNotFoundError("Department", id)
+			return nil, errs.NewEntityNotFoundError("Department", id)
 		}
-		return nil, errors.NewRepositoryError("get", err)
+		return nil, errs.NewRepositoryError("get", err)
 	}
 	return &department, nil
 }
@@ -44,7 +44,7 @@ func (r *DepartmentRepository) List(with ...domain.DepartmentOption) ([]*domain.
 	var departments []*domain.Department
 	query := r.applyOptions(with)
 	if err := query.Find(&departments).Error; err != nil {
-		return nil, errors.NewRepositoryError("list", err)
+		return nil, errs.NewRepositoryError("list", err)
 	}
 	return departments, nil
 }
@@ -52,28 +52,28 @@ func (r *DepartmentRepository) List(with ...domain.DepartmentOption) ([]*domain.
 func (r *DepartmentRepository) Reload(department *domain.Department, with ...domain.DepartmentOption) error {
 	query := r.applyOptions(with)
 	if err := query.First(department, "id = ?", department.ID).Error; err != nil {
-		return errors.NewRepositoryError("reload", err)
+		return errs.NewRepositoryError("reload", err)
 	}
 	return nil
 }
 
 func (r *DepartmentRepository) Create(department *domain.Department) error {
 	if err := r.db.Create(department).Error; err != nil {
-		return errors.NewRepositoryError("create", err)
+		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *DepartmentRepository) Update(department *domain.Department) error {
 	if err := r.db.Save(department).Error; err != nil {
-		return errors.NewRepositoryError("update", err)
+		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
 func (r *DepartmentRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.Department{}, "id = ?", id).Error; err != nil {
-		return errors.NewRepositoryError("delete", err)
+		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
 }

@@ -4,6 +4,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultNice = 100
+)
+
 type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;primaryKey"`
 	FullName     string    `gorm:"column:full_name;type:varchar(255);not null"`
@@ -113,6 +117,7 @@ func UserWithAdminStudioInvocations() UserOption {
 
 type UserRepository interface {
 	Get(id uuid.UUID, with ...UserOption) (*User, error)
+	GetByEmail(email string, with ...UserOption) (*User, error)
 	List(with ...UserOption) ([]*User, error)
 	Reload(user *User, with ...UserOption) error
 

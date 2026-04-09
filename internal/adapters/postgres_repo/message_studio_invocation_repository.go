@@ -1,10 +1,11 @@
-package postgres
+package postgresrepo
 
 import (
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errs"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/domain/errors"
 )
 
 type MessageStudioInvocationRepository struct {
@@ -32,9 +33,9 @@ func (r *MessageStudioInvocationRepository) Get(id uuid.UUID, with ...domain.Mes
 	query := r.applyOptions(with)
 	if err := query.First(&msg, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.NewEntityNotFoundError("MessageStudioInvocation", id)
+			return nil, errs.NewEntityNotFoundError("MessageStudioInvocation", id)
 		}
-		return nil, errors.NewRepositoryError("get", err)
+		return nil, errs.NewRepositoryError("get", err)
 	}
 	return &msg, nil
 }
@@ -43,28 +44,28 @@ func (r *MessageStudioInvocationRepository) GetInvocation(invocationID uuid.UUID
 	var messages []*domain.MessageStudioInvocation
 	query := r.applyOptions(with)
 	if err := query.Where("invocation_id = ?", invocationID).Find(&messages).Error; err != nil {
-		return nil, errors.NewRepositoryError("get_invocation", err)
+		return nil, errs.NewRepositoryError("get_invocation", err)
 	}
 	return messages, nil
 }
 
 func (r *MessageStudioInvocationRepository) Create(messageStudioInvocation *domain.MessageStudioInvocation) error {
 	if err := r.db.Create(messageStudioInvocation).Error; err != nil {
-		return errors.NewRepositoryError("create", err)
+		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *MessageStudioInvocationRepository) Update(messageStudioInvocation *domain.MessageStudioInvocation) error {
 	if err := r.db.Save(messageStudioInvocation).Error; err != nil {
-		return errors.NewRepositoryError("update", err)
+		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
 func (r *MessageStudioInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.MessageStudioInvocation{}, "id = ?", id).Error; err != nil {
-		return errors.NewRepositoryError("delete", err)
+		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
 }
