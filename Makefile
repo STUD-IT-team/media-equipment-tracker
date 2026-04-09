@@ -10,6 +10,8 @@ define compose_file
 	$(if $(findstring dev-,$(1)),$(COMPOSE_DEV),$(COMPOSE_PROD))
 endef
 
+.PHONY: up upd upda down
+
 %up:
 	$(DOCKER) compose --env-file $(COMPOSE_ENV) -f $(call compose_file,$@) up -d $(CONTAINERS)
 
@@ -22,3 +24,6 @@ endef
 %down:
 	$(DOCKER) compose --env-file $(COMPOSE_ENV) -f $(call compose_file,$@) down
 
+.PHONY: test-integration
+test-integration:
+	./scripts/integration_tests.sh

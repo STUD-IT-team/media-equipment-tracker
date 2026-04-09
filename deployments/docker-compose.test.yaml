@@ -1,0 +1,16 @@
+services:
+  test-db-media-equipment-tracker:
+    image: ${PGTEST_IMAGE}
+    container_name: ${PGTEST_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PGTEST_USERNAME}
+      POSTGRES_PASSWORD: ${PGTEST_PASSWORD}
+      POSTGRES_DB: ${PGTEST_DATABASE}
+    ports:
+      - ${PGTEST_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGTEST_USERNAME} -d ${PGTEST_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
