@@ -69,8 +69,8 @@ jobs:
           go mod download
           go mod verify
       
-      - name: Install docker 
-        uses: docker/setup-docker-action@v2
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v5
 
       - name: Ensure docker compose
         run: |
