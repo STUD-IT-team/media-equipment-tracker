@@ -4,7 +4,7 @@ run:
 
 output:
   formats:
-    colored-line-number: stdout
+    - format: colored-line-number
 
 linters:
   disable-all: true
