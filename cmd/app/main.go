@@ -12,9 +12,9 @@ import (
 
 	"media-equipment-tracker/internal/adapters/bcrypthasher"
 	"media-equipment-tracker/internal/adapters/inmem"
+	"media-equipment-tracker/internal/adapters/postgres/postgresuser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
-	postgresrepo "media-equipment-tracker/internal/adapters/postgres_repo"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// Repository
-	userRepo := postgresrepo.NewUserRepository(db)
+	userRepo := postgresuser.NewPostgresUserRepository(db)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
