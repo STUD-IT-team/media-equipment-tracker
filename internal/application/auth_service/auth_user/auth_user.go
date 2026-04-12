@@ -3,13 +3,14 @@ package authuser
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/google/uuid"
+
 	"media-equipment-tracker/internal/adapters/inmem"
 	"media-equipment-tracker/internal/application/auth_service/hasher"
 	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
 	"media-equipment-tracker/internal/domain"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -63,12 +64,12 @@ func NewAuthUser(
 	return server, nil
 }
 
-func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (string, error) {
+func (s *authUserService) LoginUser(_ context.Context, lur LoginUserRequest) (string, error) {
 	user, err := s.userRep.GetByEmail(lur.Email)
 	if err != nil {
 		return "", err
 	}
-	if err = s.hasher.CheckPassword(lur.Password, user.HashPassword); err != nil {
+	if err := s.hasher.CheckPassword(lur.Password, user.HashPassword); err != nil {
 		return "", err
 	}
 	roles := make([]domain.RoleAuth, 0)
@@ -85,7 +86,7 @@ func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (
 	return accessToken, nil
 }
 
-func (s *authUserService) RegisterUser(ctx context.Context, rur RegisterUserRequest) error {
+func (s *authUserService) RegisterUser(_ context.Context, rur RegisterUserRequest) error {
 	hashedPassword, err := s.hasher.HashPassword(rur.Password)
 	if err != nil {
 		return err
@@ -104,6 +105,6 @@ func (s *authUserService) VerifyByToken(tokenStr string, needRoles []domain.Role
 	return s.tokenMaker.VerifyToken(tokenStr, needRoles)
 }
 
-func (s *authUserService) LogoutUser(ctx context.Context, token string) {
+func (s *authUserService) LogoutUser(_ context.Context, token string) {
 	s.tokenRep.Delete(token)
 }

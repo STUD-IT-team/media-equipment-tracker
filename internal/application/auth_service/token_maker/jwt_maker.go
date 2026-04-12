@@ -3,11 +3,12 @@ package tokenmaker
 import (
 	"errors"
 	"fmt"
-	"media-equipment-tracker/internal/domain"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+
+	"media-equipment-tracker/internal/domain"
 )
 
 // алгоритм с симметричным ключом для подписи токенов

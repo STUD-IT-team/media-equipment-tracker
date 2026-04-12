@@ -1,9 +1,10 @@
 package inmem
 
 import (
-	"media-equipment-tracker/cmd/app/config"
 	"sync"
 	"time"
+
+	"media-equipment-tracker/cmd/app/config"
 )
 
 type TokenRepository interface {

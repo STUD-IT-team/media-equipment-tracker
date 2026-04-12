@@ -16,7 +16,7 @@ import (
 
 type pgTest struct {
 	container testcontainers.Container
-	config    pgTestConfig
+	config    *pgTestConfig
 
 	creds PgTestCredentials
 	pool  *pgxpool.Pool
@@ -29,7 +29,7 @@ type pgTest struct {
 	refCount     int
 }
 
-func new(config pgTestConfig) *pgTest {
+func newPgTest(config *pgTestConfig) *pgTest {
 	return &pgTest{
 		config:       config,
 		mutex:        &sync.Mutex{},

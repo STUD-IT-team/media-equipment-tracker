@@ -2,10 +2,11 @@ package tokenmaker
 
 import (
 	"errors"
-	"media-equipment-tracker/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
+
+	"media-equipment-tracker/internal/domain"
 )
 
 type TokenMaker interface {

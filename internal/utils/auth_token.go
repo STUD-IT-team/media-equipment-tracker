@@ -3,15 +3,16 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"media-equipment-tracker/cmd/app/config"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"media-equipment-tracker/cmd/app/config"
 )
 
 func TokenFromHeader(c *gin.Context) (string, error) {
 	authorizationHeader := c.GetHeader(config.AuthorizationHeaderKey)
-	if len(authorizationHeader) == 0 {
+	if authorizationHeader == "" {
 		return "", errors.New("authorization header is not provided")
 	}
 

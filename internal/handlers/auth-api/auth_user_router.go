@@ -1,13 +1,14 @@
-package auth_api
+package authapi
 
 import (
 	"errors"
-	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
-	"media-equipment-tracker/internal/domain/errs"
-	"media-equipment-tracker/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
+	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/internal/utils"
 )
 
 type AuthUserRouter struct {

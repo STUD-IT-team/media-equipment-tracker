@@ -3,21 +3,23 @@ package main
 import (
 	"fmt"
 	"log"
-	"media-equipment-tracker/cmd/app/config"
-	"media-equipment-tracker/internal/adapters/inmem"
-	"media-equipment-tracker/internal/adapters/postgres_repo"
-	"media-equipment-tracker/internal/application/auth_service/auth_user"
-	"media-equipment-tracker/internal/application/auth_service/hasher"
-	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
-	"media-equipment-tracker/internal/application/authz_service"
-	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/handlers"
-	auth_api "media-equipment-tracker/internal/handlers/auth-api"
-	"media-equipment-tracker/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"media-equipment-tracker/cmd/app/config"
+
+	"media-equipment-tracker/internal/adapters/inmem"
+	postgresrepo "media-equipment-tracker/internal/adapters/postgres_repo"
+	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
+	"media-equipment-tracker/internal/application/auth_service/hasher"
+	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
+	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/handlers"
+	auth_api "media-equipment-tracker/internal/handlers/auth-api"
+	"media-equipment-tracker/internal/middleware"
 )
 
 func main() {
@@ -53,7 +55,7 @@ func main() {
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
 	_ = healthRouter
 
-	apiGroup := engine.Group(config.Api_version)
+	apiGroup := engine.Group(config.APIVersion)
 	usersGroup := apiGroup.Group("/")
 	usersGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{}))
 

@@ -28,7 +28,7 @@ func (r *EquipmentInInvocationRepository) applyOptions(opts []domain.EquipmentIn
 	return query
 }
 
-func (r *EquipmentInInvocationRepository) Get(invocationID uuid.UUID, equipmentID uuid.UUID, with ...domain.EquipmentInInvocationOption) (*domain.EquipmentInInvocation, error) {
+func (r *EquipmentInInvocationRepository) Get(invocationID, equipmentID uuid.UUID, with ...domain.EquipmentInInvocationOption) (*domain.EquipmentInInvocation, error) {
 	var eii domain.EquipmentInInvocation
 	query := r.applyOptions(with)
 	if err := query.First(&eii, "invocation_id = ? AND equipment_id = ?", invocationID, equipmentID).Error; err != nil {
@@ -72,7 +72,7 @@ func (r *EquipmentInInvocationRepository) Update(equipmentInInvocation *domain.E
 	return nil
 }
 
-func (r *EquipmentInInvocationRepository) Delete(invocationID uuid.UUID, equipmentID uuid.UUID) error {
+func (r *EquipmentInInvocationRepository) Delete(invocationID, equipmentID uuid.UUID) error {
 	if err := r.db.Delete(&domain.EquipmentInInvocation{}, "invocation_id = ? AND equipment_id = ?", invocationID, equipmentID).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
