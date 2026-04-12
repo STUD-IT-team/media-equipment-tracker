@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"media-equipment-tracker/internal/adapters/inmem"
 	"media-equipment-tracker/internal/domain"
 )
 
@@ -42,12 +41,12 @@ type authUserService struct {
 	hasher              Hasher
 	accessTokenDuration time.Duration
 	userRep             domain.UserRepository
-	tokenRep            inmem.TokenRepository
+	tokenRep            TokenRepository
 }
 
 func NewAuthUser(
 	tokenMaker TokenMaker, hasher Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
-	tokenRep inmem.TokenRepository,
+	tokenRep TokenRepository,
 ) (AuthUserService, error) {
 	if tokenMaker == nil || hasher == nil || urep == nil || accessTokenDuration <= 0 {
 		return nil, ErrCreateAuthUserService
@@ -74,7 +73,13 @@ func (s *authUserService) LoginUser(_ context.Context, lur LoginUserRequest) (st
 	if user.IsAdmin {
 		roles = append(roles, domain.AdminRole)
 	}
-	accessToken, err := s.tokenMaker.CreateToken(user.ID, roles, s.accessTokenDuration)
+
+	payload, err := domain.NewTokenPayload(user.ID, roles, s.accessTokenDuration)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken, err := s.tokenMaker.CreateToken(payload)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +105,20 @@ func (s *authUserService) RegisterUser(_ context.Context, rur RegisterUserReques
 }
 
 func (s *authUserService) VerifyByToken(tokenStr string, needRoles []domain.RoleAuth) (*domain.TokenPayload, error) {
-	return s.tokenMaker.VerifyToken(tokenStr, needRoles)
+	payload, err := s.tokenMaker.VerifyToken(tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, role := range needRoles {
+		for _, expectedRole := range payload.Roles {
+			if expectedRole == role {
+				return nil, ErrIncorrectRole
+			}
+		}
+	}
+
+	return payload, nil
 }
 
 func (s *authUserService) LogoutUser(_ context.Context, token string) {

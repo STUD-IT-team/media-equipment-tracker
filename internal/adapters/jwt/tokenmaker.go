@@ -3,10 +3,8 @@ package tokenmaker
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 
 	"media-equipment-tracker/internal/application/authservice"
 	"media-equipment-tracker/internal/domain"
@@ -27,17 +25,12 @@ func NewJWTMaker(secretKey string) (authservice.TokenMaker, error) {
 	return &JWTMaker{secretKey}, nil
 }
 
-func (maker *JWTMaker) CreateToken(userID uuid.UUID, roles []domain.RoleAuth, duration time.Duration) (string, error) {
-	payload, err := domain.NewTokenPayload(userID, roles, duration)
-	if err != nil {
-		return "", err
-	}
-
+func (maker *JWTMaker) CreateToken(payload *domain.TokenPayload) (string, error) {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 	return jwtToken.SignedString([]byte(maker.secretKey))
 }
 
-func (maker *JWTMaker) VerifyToken(token string, roles []domain.RoleAuth) (*domain.TokenPayload, error) {
+func (maker *JWTMaker) VerifyToken(token string) (*domain.TokenPayload, error) {
 	// проверить заголовок токена, и убедиться, что алгоритм подписи соответствует тому, который используется для подписи токенов.
 	keyFunc := func(t *jwt.Token) (interface{}, error) {
 		_, ok := t.Method.(*jwt.SigningMethodHMAC) // потому что используем HS256
@@ -59,13 +52,6 @@ func (maker *JWTMaker) VerifyToken(token string, roles []domain.RoleAuth) (*doma
 	payload, ok := jwtToken.Claims.(*domain.TokenPayload)
 	if !ok {
 		return nil, authservice.ErrInvalidToken
-	}
-	for _, role := range roles {
-		for _, expectedRole := range payload.Roles {
-			if expectedRole == role {
-				return nil, authservice.ErrIncorrectRole
-			}
-		}
 	}
 	return payload, nil
 }

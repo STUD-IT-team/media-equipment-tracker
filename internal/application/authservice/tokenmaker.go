@@ -2,17 +2,13 @@ package authservice
 
 import (
 	"errors"
-	"time"
-
-	"github.com/google/uuid"
 
 	"media-equipment-tracker/internal/domain"
 )
 
 type TokenMaker interface {
-	// duration - корректный срок действия, return - одписанную строку токена или ошибку
-	CreateToken(id uuid.UUID, roles []domain.RoleAuth, duration time.Duration) (string, error)
-	VerifyToken(token string, roles []domain.RoleAuth) (*domain.TokenPayload, error)
+	CreateToken(*domain.TokenPayload) (string, error)
+	VerifyToken(token string) (*domain.TokenPayload, error)
 }
 
 var (
