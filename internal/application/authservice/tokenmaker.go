@@ -1,4 +1,4 @@
-package tokenmaker
+package authservice
 
 import (
 	"errors"
@@ -20,7 +20,3 @@ var (
 	ErrExpiredToken  = errors.New("token has expired")
 	ErrIncorrectRole = errors.New("incorrect role")
 )
-
-func NewTokenMaker(symmetricKey string) (TokenMaker, error) {
-	return NewJWTMaker(symmetricKey)
-}

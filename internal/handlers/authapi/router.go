@@ -6,16 +6,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
+	"media-equipment-tracker/internal/application/authservice"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils"
 )
 
 type AuthUserRouter struct {
-	service authuser.AuthUserService
+	service authservice.AuthUserService
 }
 
-func NewAuthUserRouter(router *gin.RouterGroup, service authuser.AuthUserService) AuthUserRouter {
+func NewRouter(router *gin.RouterGroup, service authservice.AuthUserService) AuthUserRouter {
 	r := AuthUserRouter{
 		service: service,
 	}
@@ -29,7 +29,7 @@ func NewAuthUserRouter(router *gin.RouterGroup, service authuser.AuthUserService
 func (r *AuthUserRouter) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var req authuser.RegisterUserRequest
+	var req authservice.RegisterUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -48,7 +48,7 @@ func (r *AuthUserRouter) Register(c *gin.Context) {
 func (r *AuthUserRouter) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var req authuser.LoginUserRequest
+	var req authservice.LoginUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -63,7 +63,7 @@ func (r *AuthUserRouter) Login(c *gin.Context) {
 		return
 	}
 
-	rsp := authuser.LoginUserResponse{
+	rsp := authservice.LoginUserResponse{
 		AccessToken: accessToken,
 	}
 	c.JSON(http.StatusOK, rsp)

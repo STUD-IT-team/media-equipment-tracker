@@ -1,4 +1,4 @@
-package authuser
+package authservice
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 
 	"media-equipment-tracker/internal/adapters/inmem"
-	"media-equipment-tracker/internal/application/auth_service/hasher"
-	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
 	"media-equipment-tracker/internal/domain"
 )
 
@@ -40,15 +38,15 @@ type AuthUserService interface {
 }
 
 type authUserService struct {
-	tokenMaker          tokenmaker.TokenMaker
-	hasher              hasher.Hasher
+	tokenMaker          TokenMaker
+	hasher              Hasher
 	accessTokenDuration time.Duration
 	userRep             domain.UserRepository
 	tokenRep            inmem.TokenRepository
 }
 
 func NewAuthUser(
-	tokenMaker tokenmaker.TokenMaker, hasher hasher.Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
+	tokenMaker TokenMaker, hasher Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
 	tokenRep inmem.TokenRepository,
 ) (AuthUserService, error) {
 	if tokenMaker == nil || hasher == nil || urep == nil || accessTokenDuration <= 0 {

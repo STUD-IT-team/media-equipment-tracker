@@ -10,15 +10,16 @@ import (
 
 	"media-equipment-tracker/cmd/app/config"
 
+	"media-equipment-tracker/internal/adapters/bcrypthasher"
 	"media-equipment-tracker/internal/adapters/inmem"
+
+	jwt "media-equipment-tracker/internal/adapters/jwt"
 	postgresrepo "media-equipment-tracker/internal/adapters/postgres_repo"
-	authuser "media-equipment-tracker/internal/application/auth_service/auth_user"
-	"media-equipment-tracker/internal/application/auth_service/hasher"
-	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
+	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
-	auth_api "media-equipment-tracker/internal/handlers/auth-api"
+	"media-equipment-tracker/internal/handlers/authapi"
 	"media-equipment-tracker/internal/middleware"
 )
 
@@ -37,11 +38,11 @@ func main() {
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
-	tokenMaker, err := tokenmaker.NewTokenMaker(config.TokenSymmetricKey)
+	tokenMaker, err := jwt.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
 		panic(err.Error())
 	}
-	hasher, err := hasher.NewHasher()
+	hasher, err := bcrypthasher.NewBcryptHasher()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -63,7 +64,7 @@ func main() {
 	adminsGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{domain.AdminRole}))
 
 	// Routers
-	authUserRouter := auth_api.NewAuthUserRouter(apiGroup, authUserServ)
+	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {

@@ -15,6 +15,10 @@ var (
 type BcryptHasher struct {
 }
 
+func NewBcryptHasher() (*BcryptHasher, error) {
+	return &BcryptHasher{}, nil
+}
+
 func (h *BcryptHasher) HashPassword(password string) (string, error) {
 	if password == "" {
 		return "", ErrEmptyPassword
