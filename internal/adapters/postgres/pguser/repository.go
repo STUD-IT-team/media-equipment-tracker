@@ -1,4 +1,4 @@
-package postgresuser
+package pguser
 
 import (
 	"media-equipment-tracker/internal/domain"

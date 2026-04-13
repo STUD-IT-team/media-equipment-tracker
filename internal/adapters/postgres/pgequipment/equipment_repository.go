@@ -1,4 +1,4 @@
-package postgresequipment
+package pgequipment
 
 import (
 	"media-equipment-tracker/internal/domain"

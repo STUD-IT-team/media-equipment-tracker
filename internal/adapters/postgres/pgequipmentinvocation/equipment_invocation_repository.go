@@ -1,4 +1,4 @@
-package postgresequipmentinvocation
+package pgequipmentinvocation
 
 import (
 	"media-equipment-tracker/internal/domain"

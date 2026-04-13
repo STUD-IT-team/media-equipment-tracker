@@ -1,4 +1,4 @@
-package postgresmessage
+package pgmessage
 
 import (
 	"media-equipment-tracker/internal/domain"

@@ -1,4 +1,4 @@
-package postgresorganization
+package pgorganization
 
 import (
 	"media-equipment-tracker/internal/domain"

@@ -1,6 +1,6 @@
 //go:build integration
 
-package postgresuser_test
+package pguser_test
 
 import (
 	"media-equipment-tracker/internal/domain"

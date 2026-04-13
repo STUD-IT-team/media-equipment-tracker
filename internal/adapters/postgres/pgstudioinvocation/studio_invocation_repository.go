@@ -1,4 +1,4 @@
-package postgresstudioinvocation
+package pgstudioinvocation
 
 import (
 	"media-equipment-tracker/internal/domain"
