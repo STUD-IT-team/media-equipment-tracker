@@ -110,11 +110,16 @@ func (s *authUserService) VerifyByToken(tokenStr string, needRoles []domain.Role
 		return nil, err
 	}
 
-	for _, role := range needRoles {
-		for _, expectedRole := range payload.Roles {
+	for _, expectedRole := range needRoles {
+		found := false
+		for _, role := range payload.Roles {
 			if expectedRole == role {
-				return nil, ErrIncorrectRole
+				found = true
+				break
 			}
+		}
+		if !found {
+			return nil, ErrIncorrectRole
 		}
 	}
 

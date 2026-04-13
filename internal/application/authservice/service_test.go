@@ -98,7 +98,7 @@ func (s *AuthSuite) TestRegisterUser() {
 }
 
 func (s *AuthSuite) TestVerifyByToken_Success() {
-	payload := &domain.TokenPayload{Roles: []domain.RoleAuth{}}
+	payload := &domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}}
 
 	s.tokenMaker.On("VerifyToken", "token").Return(payload, nil)
 
@@ -109,7 +109,7 @@ func (s *AuthSuite) TestVerifyByToken_Success() {
 }
 
 func (s *AuthSuite) TestVerifyByToken_BadRole() {
-	payload := &domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}}
+	payload := &domain.TokenPayload{Roles: []domain.RoleAuth{}}
 
 	s.tokenMaker.On("VerifyToken", "token").Return(payload, nil)
 
