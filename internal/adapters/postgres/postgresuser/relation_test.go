@@ -10,7 +10,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	postgresrepo "media-equipment-tracker/internal/adapters/postgres"
+	"media-equipment-tracker/internal/adapters/postgres/postgresdepartment"
+	"media-equipment-tracker/internal/adapters/postgres/postgresorganization"
 	"media-equipment-tracker/internal/adapters/postgres/postgresuser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
@@ -46,8 +47,8 @@ func (s *UserRelationsSuite) SetupTest() {
 
 	s.db = gdb
 	s.userRepo = postgresuser.NewPostgresUserRepository(gdb)
-	s.orgRepo = postgresrepo.NewOrganizationRepository(gdb)
-	s.deptRepo = postgresrepo.NewDepartmentRepository(gdb)
+	s.orgRepo = postgresorganization.NewPostgresOrganizationRepository(gdb)
+	s.deptRepo = postgresdepartment.NewPostgresDepartmentRepository(gdb)
 }
 
 func (s *UserRelationsSuite) TearDownSuite() {
