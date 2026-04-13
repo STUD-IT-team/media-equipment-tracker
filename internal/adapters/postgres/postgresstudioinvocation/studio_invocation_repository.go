@@ -1,4 +1,4 @@
-package postgresrepo
+package postgresstudioinvocation
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type StudioInvocationRepository struct {
+type PostgresStudioInvocationRepository struct {
 	db *gorm.DB
 }
 
-func NewStudioInvocationRepository(db *gorm.DB) domain.StudioInvocationRepository {
-	return &StudioInvocationRepository{db: db}
+func NewPostgresStudioInvocationRepository(db *gorm.DB) *PostgresStudioInvocationRepository {
+	return &PostgresStudioInvocationRepository{db: db}
 }
 
-func (r *StudioInvocationRepository) applyOptions(opts []domain.StudioInvocationOption) *gorm.DB {
+var _ domain.StudioInvocationRepository = (*PostgresStudioInvocationRepository)(nil)
+
+func (r *PostgresStudioInvocationRepository) applyOptions(opts []domain.StudioInvocationOption) *gorm.DB {
 	options := &domain.StudioInvocationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -28,7 +30,7 @@ func (r *StudioInvocationRepository) applyOptions(opts []domain.StudioInvocation
 	return query
 }
 
-func (r *StudioInvocationRepository) Get(id uuid.UUID, with ...domain.StudioInvocationOption) (*domain.StudioInvocation, error) {
+func (r *PostgresStudioInvocationRepository) Get(id uuid.UUID, with ...domain.StudioInvocationOption) (*domain.StudioInvocation, error) {
 	var inv domain.StudioInvocation
 	query := r.applyOptions(with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
@@ -40,7 +42,7 @@ func (r *StudioInvocationRepository) Get(id uuid.UUID, with ...domain.StudioInvo
 	return &inv, nil
 }
 
-func (r *StudioInvocationRepository) List(with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
+func (r *PostgresStudioInvocationRepository) List(with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
 	var invocations []*domain.StudioInvocation
 	query := r.applyOptions(with)
 	if err := query.Find(&invocations).Error; err != nil {
@@ -49,7 +51,7 @@ func (r *StudioInvocationRepository) List(with ...domain.StudioInvocationOption)
 	return invocations, nil
 }
 
-func (r *StudioInvocationRepository) Reload(studioInvocation *domain.StudioInvocation, with ...domain.StudioInvocationOption) error {
+func (r *PostgresStudioInvocationRepository) Reload(studioInvocation *domain.StudioInvocation, with ...domain.StudioInvocationOption) error {
 	query := r.applyOptions(with)
 	if err := query.First(studioInvocation, "id = ?", studioInvocation.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
@@ -57,21 +59,21 @@ func (r *StudioInvocationRepository) Reload(studioInvocation *domain.StudioInvoc
 	return nil
 }
 
-func (r *StudioInvocationRepository) Create(studioInvocation *domain.StudioInvocation) error {
+func (r *PostgresStudioInvocationRepository) Create(studioInvocation *domain.StudioInvocation) error {
 	if err := r.db.Create(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *StudioInvocationRepository) Update(studioInvocation *domain.StudioInvocation) error {
+func (r *PostgresStudioInvocationRepository) Update(studioInvocation *domain.StudioInvocation) error {
 	if err := r.db.Save(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *StudioInvocationRepository) Delete(id uuid.UUID) error {
+func (r *PostgresStudioInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.StudioInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

@@ -1,4 +1,4 @@
-package postgresrepo
+package postgresmessage
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type MessageEquipmentInvocationRepository struct {
+type PostgresMessageEquipmentInvocationRepository struct {
 	db *gorm.DB
 }
 
-func NewMessageEquipmentInvocationRepository(db *gorm.DB) domain.MessageEquipmentInvocationRepository {
-	return &MessageEquipmentInvocationRepository{db: db}
+func NewPostgresMessageEquipmentInvocationRepository(db *gorm.DB) *PostgresMessageEquipmentInvocationRepository {
+	return &PostgresMessageEquipmentInvocationRepository{db: db}
 }
 
-func (r *MessageEquipmentInvocationRepository) applyOptions(opts []domain.MessageEquipmentInvocationOption) *gorm.DB {
+var _ domain.MessageEquipmentInvocationRepository = (*PostgresMessageEquipmentInvocationRepository)(nil)
+
+func (r *PostgresMessageEquipmentInvocationRepository) applyOptions(opts []domain.MessageEquipmentInvocationOption) *gorm.DB {
 	options := &domain.MessageEquipmentInvocationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -28,7 +30,7 @@ func (r *MessageEquipmentInvocationRepository) applyOptions(opts []domain.Messag
 	return query
 }
 
-func (r *MessageEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.MessageEquipmentInvocationOption) (*domain.MessageEquipmentInvocation, error) {
+func (r *PostgresMessageEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.MessageEquipmentInvocationOption) (*domain.MessageEquipmentInvocation, error) {
 	var msg domain.MessageEquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.First(&msg, "id = ?", id).Error; err != nil {
@@ -40,7 +42,7 @@ func (r *MessageEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.
 	return &msg, nil
 }
 
-func (r *MessageEquipmentInvocationRepository) GetInvocation(invocationID uuid.UUID, with ...domain.MessageEquipmentInvocationOption) ([]*domain.MessageEquipmentInvocation, error) {
+func (r *PostgresMessageEquipmentInvocationRepository) GetInvocation(invocationID uuid.UUID, with ...domain.MessageEquipmentInvocationOption) ([]*domain.MessageEquipmentInvocation, error) {
 	var messages []*domain.MessageEquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.Where("invocation_id = ?", invocationID).Find(&messages).Error; err != nil {
@@ -49,21 +51,21 @@ func (r *MessageEquipmentInvocationRepository) GetInvocation(invocationID uuid.U
 	return messages, nil
 }
 
-func (r *MessageEquipmentInvocationRepository) Create(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
+func (r *PostgresMessageEquipmentInvocationRepository) Create(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
 	if err := r.db.Create(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *MessageEquipmentInvocationRepository) Update(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
+func (r *PostgresMessageEquipmentInvocationRepository) Update(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
 	if err := r.db.Save(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *MessageEquipmentInvocationRepository) Delete(id uuid.UUID) error {
+func (r *PostgresMessageEquipmentInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.MessageEquipmentInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

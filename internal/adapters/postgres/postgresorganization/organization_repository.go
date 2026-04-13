@@ -1,4 +1,4 @@
-package postgresrepo
+package postgresorganization
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type OrganizationRepository struct {
+type PostgresOrganizationRepository struct {
 	db *gorm.DB
 }
 
-func NewOrganizationRepository(db *gorm.DB) domain.OrganizationRepository {
-	return &OrganizationRepository{db: db}
+func NewPostgresOrganizationRepository(db *gorm.DB) *PostgresOrganizationRepository {
+	return &PostgresOrganizationRepository{db: db}
 }
 
-func (r *OrganizationRepository) Get(id uuid.UUID, opts ...domain.OrganizationOption) (*domain.Organization, error) {
+var _ domain.OrganizationRepository = (*PostgresOrganizationRepository)(nil)
+
+func (r *PostgresOrganizationRepository) Get(id uuid.UUID, opts ...domain.OrganizationOption) (*domain.Organization, error) {
 	options := &domain.OrganizationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -39,7 +41,7 @@ func (r *OrganizationRepository) Get(id uuid.UUID, opts ...domain.OrganizationOp
 	return &organization, nil
 }
 
-func (r *OrganizationRepository) List(opts ...domain.OrganizationOption) ([]*domain.Organization, error) {
+func (r *PostgresOrganizationRepository) List(opts ...domain.OrganizationOption) ([]*domain.Organization, error) {
 	options := &domain.OrganizationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -59,7 +61,7 @@ func (r *OrganizationRepository) List(opts ...domain.OrganizationOption) ([]*dom
 	return organizations, nil
 }
 
-func (r *OrganizationRepository) Reload(organization *domain.Organization, opts ...domain.OrganizationOption) error {
+func (r *PostgresOrganizationRepository) Reload(organization *domain.Organization, opts ...domain.OrganizationOption) error {
 	options := &domain.OrganizationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -78,7 +80,7 @@ func (r *OrganizationRepository) Reload(organization *domain.Organization, opts 
 	return nil
 }
 
-func (r *OrganizationRepository) Create(organization *domain.Organization) error {
+func (r *PostgresOrganizationRepository) Create(organization *domain.Organization) error {
 	err := r.db.Create(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("create", err)
@@ -86,7 +88,7 @@ func (r *OrganizationRepository) Create(organization *domain.Organization) error
 	return nil
 }
 
-func (r *OrganizationRepository) Update(organization *domain.Organization) error {
+func (r *PostgresOrganizationRepository) Update(organization *domain.Organization) error {
 	err := r.db.Save(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("update", err)
@@ -94,7 +96,7 @@ func (r *OrganizationRepository) Update(organization *domain.Organization) error
 	return nil
 }
 
-func (r *OrganizationRepository) Delete(id uuid.UUID) error {
+func (r *PostgresOrganizationRepository) Delete(id uuid.UUID) error {
 	err := r.db.Delete(&domain.Organization{}, "id = ?", id).Error
 	if err != nil {
 		return errs.NewRepositoryError("delete", err)
