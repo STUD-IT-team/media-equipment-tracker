@@ -15,8 +15,12 @@ var (
 type BcryptHasher struct {
 }
 
+func NewBcryptHasher() (*BcryptHasher, error) {
+	return &BcryptHasher{}, nil
+}
+
 func (h *BcryptHasher) HashPassword(password string) (string, error) {
-	if len(password) == 0 {
+	if password == "" {
 		return "", ErrEmptyPassword
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -26,7 +30,7 @@ func (h *BcryptHasher) HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func (h *BcryptHasher) CheckPassword(password string, hashedPassword string) error {
+func (h *BcryptHasher) CheckPassword(password, hashedPassword string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
 		err = ErrPassword

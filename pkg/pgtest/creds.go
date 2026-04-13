@@ -12,7 +12,7 @@ type PgTestCredentials struct {
 	Host     string
 }
 
-func fromConfig(config pgTestConfig, port uint16, host string) PgTestCredentials {
+func fromConfig(config *pgTestConfig, port uint16, host string) PgTestCredentials {
 	return PgTestCredentials{
 		Username: config.Username,
 		Password: config.Password,

@@ -1,0 +1,84 @@
+name: Test Go Project
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Make script executable
+        run: chmod +x scripts/lint.sh
+
+      - name: Lint
+        run: ./scripts/lint.sh
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Make script executable
+        run: chmod +x scripts/unit_tests.sh
+
+      - name: Run unit tests
+        run: ./scripts/unit_tests.sh
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
+      
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v5
+
+      - name: Ensure docker compose
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Make script executable
+        run: chmod +x scripts/integration_tests.sh
+
+      - name: Run integration tests
+        run: ./scripts/integration_tests.sh

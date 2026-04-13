@@ -1,19 +1,16 @@
 package inmem
 
 import (
-	"media-equipment-tracker/cmd/app/config"
 	"sync"
 	"time"
+
+	"media-equipment-tracker/cmd/app/config"
+	"media-equipment-tracker/internal/application/authservice"
 )
 
-type TokenRepository interface {
-	Check(token string) bool
-	Add(token string) bool
-	Delete(token string)
-	cleanupExpired()
-}
+var _ authservice.TokenRepository = &mapTokenRepositoryWithTTL{}
 
-func NewTokenRepository() TokenRepository {
+func NewTokenRepository() *mapTokenRepositoryWithTTL {
 	return getMapTokenRepositoryWithTTL()
 }
 

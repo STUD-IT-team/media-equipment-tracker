@@ -16,7 +16,7 @@ var (
 func getInstance() (*pgTest, error) {
 	once.Do(func() {
 		cfg := configFromEnv()
-		instance = new(cfg)
+		instance = newPgTest(&cfg)
 		initErr = instance.Start()
 	})
 

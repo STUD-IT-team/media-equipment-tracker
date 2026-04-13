@@ -3,21 +3,24 @@ package main
 import (
 	"fmt"
 	"log"
-	"media-equipment-tracker/cmd/app/config"
-	"media-equipment-tracker/internal/adapters/inmem"
-	"media-equipment-tracker/internal/adapters/postgres_repo"
-	"media-equipment-tracker/internal/application/auth_service/auth_user"
-	"media-equipment-tracker/internal/application/auth_service/hasher"
-	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
-	"media-equipment-tracker/internal/application/authz_service"
-	"media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/handlers"
-	auth_api "media-equipment-tracker/internal/handlers/auth-api"
-	"media-equipment-tracker/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"media-equipment-tracker/cmd/app/config"
+
+	"media-equipment-tracker/internal/adapters/bcrypthasher"
+	"media-equipment-tracker/internal/adapters/inmem"
+	"media-equipment-tracker/internal/adapters/postgres/postgresuser"
+
+	jwt "media-equipment-tracker/internal/adapters/jwt"
+	authuser "media-equipment-tracker/internal/application/authservice"
+	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/handlers"
+	"media-equipment-tracker/internal/handlers/authapi"
+	"media-equipment-tracker/internal/middleware"
 )
 
 func main() {
@@ -31,15 +34,15 @@ func main() {
 	}
 
 	// Repository
-	userRepo := postgresrepo.NewUserRepository(db)
+	userRepo := postgresuser.NewPostgresUserRepository(db)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
-	tokenMaker, err := tokenmaker.NewTokenMaker(config.TokenSymmetricKey)
+	tokenMaker, err := jwt.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
 		panic(err.Error())
 	}
-	hasher, err := hasher.NewHasher()
+	hasher, err := bcrypthasher.NewBcryptHasher()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -53,7 +56,7 @@ func main() {
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
 	_ = healthRouter
 
-	apiGroup := engine.Group(config.Api_version)
+	apiGroup := engine.Group(config.APIVersion)
 	usersGroup := apiGroup.Group("/")
 	usersGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{}))
 
@@ -61,7 +64,7 @@ func main() {
 	adminsGroup.Use(middleware.AuthMiddleware(authZ, tokenRep, authUserServ, []domain.RoleAuth{domain.AdminRole}))
 
 	// Routers
-	authUserRouter := auth_api.NewAuthUserRouter(apiGroup, authUserServ)
+	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {

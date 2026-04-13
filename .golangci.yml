@@ -1,0 +1,81 @@
+run:
+  timeout: 5m
+  tests: true
+
+output:
+  formats:
+    - format: colored-line-number
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+
+    - revive
+    - stylecheck
+    - gosimple
+    - gofmt
+    - goimports
+
+    - gocritic
+    - bodyclose
+
+    - unused
+    - unconvert
+    - prealloc
+
+linters-settings:
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: media-equipment-tracker
+
+  revive:
+    severity: warning
+    rules:
+      - name: var-naming
+      - name: receiver-naming
+
+      - name: indent-error-flow
+      - name: empty-lines
+      - name: superfluous-else
+      - name: unused-parameter
+
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - diagnostic
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Разрешаем короткие переменные в маленьких функциях
+    - linters:
+        - revive
+      text: "var-naming"
+      source: "^i$|^j$|^k$"
+
+    # Игнор тестов
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocritic
+
+  exclude-dirs:
+    - vendor
+    - mocks
+    - generated
+
+severity:
+  default-severity: warning

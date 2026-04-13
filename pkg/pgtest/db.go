@@ -16,7 +16,7 @@ type PgTestDatabase struct {
 	pgTest   *pgTest
 	released bool
 
-	config pgTestConfig
+	config *pgTestConfig
 	creds  PgTestCredentials
 
 	adminPool *pgxpool.Pool
@@ -26,7 +26,7 @@ type PgTestDatabase struct {
 	releaseCallback func(db *PgTestDatabase) error
 }
 
-func newDatabase(pgTest *pgTest, config pgTestConfig, creds PgTestCredentials, releaseCallback func(db *PgTestDatabase) error) (*PgTestDatabase, error) {
+func newDatabase(pgTest *pgTest, config *pgTestConfig, creds PgTestCredentials, releaseCallback func(db *PgTestDatabase) error) (*PgTestDatabase, error) {
 	pool, err := pgxpool.New(context.Background(), creds.String())
 	if err != nil {
 		return nil, err
@@ -106,13 +106,16 @@ func (d *PgTestDatabase) CreateTemplate() error {
 		return ErrTemplateExists
 	}
 
-	_, _ = d.adminPool.Exec(ctx, `
+	_, err := d.adminPool.Exec(ctx, `
 		SELECT pg_terminate_backend(pid)
 		FROM pg_stat_activity
 		WHERE datname = $1
 		`, d.creds.Database)
+	if err != nil {
+		return err
+	}
 
-	_, err := d.adminPool.Exec(ctx, fmt.Sprintf("CREATE DATABASE %s TEMPLATE %s", d.templateName(), d.creds.Database))
+	_, err = d.adminPool.Exec(ctx, fmt.Sprintf("CREATE DATABASE %s TEMPLATE %s", d.templateName(), d.creds.Database))
 	if err != nil {
 		return err
 	}
@@ -135,13 +138,16 @@ func (d *PgTestDatabase) ResetTemplate() error {
 		return ErrNoTemplate
 	}
 
-	_, _ = d.adminPool.Exec(ctx, `
+	_, err := d.adminPool.Exec(ctx, `
 		SELECT pg_terminate_backend(pid)
 		FROM pg_stat_activity
 		WHERE datname = $1
 		`, d.templateName())
+	if err != nil {
+		return err
+	}
 
-	_, err := d.adminPool.Exec(ctx, fmt.Sprintf("DROP DATABASE %s", d.templateName()))
+	_, err = d.adminPool.Exec(ctx, fmt.Sprintf("DROP DATABASE %s", d.templateName()))
 	if err != nil {
 		return err
 	}
@@ -163,13 +169,16 @@ func (d *PgTestDatabase) ApplyTemplate() error {
 	d.pool = nil
 
 	// Уничтожаем текущую базу
-	_, _ = d.adminPool.Exec(ctx, `
+	_, err := d.adminPool.Exec(ctx, `
 		SELECT pg_terminate_backend(pid)
 		FROM pg_stat_activity
 		WHERE datname = $1
 		`, d.creds.Database)
+	if err != nil {
+		return err
+	}
 
-	_, err := d.adminPool.Exec(ctx, fmt.Sprintf("DROP DATABASE %s", d.creds.Database))
+	_, err = d.adminPool.Exec(ctx, fmt.Sprintf("DROP DATABASE %s", d.creds.Database))
 	if err != nil {
 		return err
 	}

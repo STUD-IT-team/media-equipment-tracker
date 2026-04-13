@@ -1,4 +1,4 @@
-package postgresrepo
+package postgresuser
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepository struct {
+type PostgresUserRepository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) domain.UserRepository {
-	return &UserRepository{db: db}
+func NewPostgresUserRepository(db *gorm.DB) domain.UserRepository {
+	return &PostgresUserRepository{db: db}
 }
 
-func (r *UserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*domain.User, error) {
+func (r *PostgresUserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -39,7 +39,7 @@ func (r *UserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*domain.U
 	return &user, nil
 }
 
-func (r *UserRepository) GetByEmail(email string, opts ...domain.UserOption) (*domain.User, error) {
+func (r *PostgresUserRepository) GetByEmail(email string, opts ...domain.UserOption) (*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -62,7 +62,7 @@ func (r *UserRepository) GetByEmail(email string, opts ...domain.UserOption) (*d
 	return &user, nil
 }
 
-func (r *UserRepository) List(opts ...domain.UserOption) ([]*domain.User, error) {
+func (r *PostgresUserRepository) List(opts ...domain.UserOption) ([]*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -82,7 +82,7 @@ func (r *UserRepository) List(opts ...domain.UserOption) ([]*domain.User, error)
 	return users, nil
 }
 
-func (r *UserRepository) Reload(user *domain.User, opts ...domain.UserOption) error {
+func (r *PostgresUserRepository) Reload(user *domain.User, opts ...domain.UserOption) error {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -101,7 +101,7 @@ func (r *UserRepository) Reload(user *domain.User, opts ...domain.UserOption) er
 	return nil
 }
 
-func (r *UserRepository) Create(user *domain.User) error {
+func (r *PostgresUserRepository) Create(user *domain.User) error {
 	err := r.db.Create(user).Error
 	if err != nil {
 		return errs.NewRepositoryError("create", err)
@@ -109,7 +109,7 @@ func (r *UserRepository) Create(user *domain.User) error {
 	return nil
 }
 
-func (r *UserRepository) Update(user *domain.User) error {
+func (r *PostgresUserRepository) Update(user *domain.User) error {
 	err := r.db.Save(user).Error
 	if err != nil {
 		return errs.NewRepositoryError("update", err)
@@ -117,7 +117,7 @@ func (r *UserRepository) Update(user *domain.User) error {
 	return nil
 }
 
-func (r *UserRepository) Delete(id uuid.UUID) error {
+func (r *PostgresUserRepository) Delete(id uuid.UUID) error {
 	err := r.db.Delete(&domain.User{}, "id = ?", id).Error
 	if err != nil {
 		return errs.NewRepositoryError("delete", err)

@@ -1,15 +1,13 @@
-package authuser
+package authservice
 
 import (
 	"context"
 	"errors"
-	"media-equipment-tracker/internal/adapters/inmem"
-	"media-equipment-tracker/internal/application/auth_service/hasher"
-	tokenmaker "media-equipment-tracker/internal/application/auth_service/token_maker"
-	"media-equipment-tracker/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
+
+	"media-equipment-tracker/internal/domain"
 )
 
 var (
@@ -39,16 +37,16 @@ type AuthUserService interface {
 }
 
 type authUserService struct {
-	tokenMaker          tokenmaker.TokenMaker
-	hasher              hasher.Hasher
+	tokenMaker          TokenMaker
+	hasher              Hasher
 	accessTokenDuration time.Duration
 	userRep             domain.UserRepository
-	tokenRep            inmem.TokenRepository
+	tokenRep            TokenRepository
 }
 
 func NewAuthUser(
-	tokenMaker tokenmaker.TokenMaker, hasher hasher.Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
-	tokenRep inmem.TokenRepository,
+	tokenMaker TokenMaker, hasher Hasher, accessTokenDuration time.Duration, urep domain.UserRepository,
+	tokenRep TokenRepository,
 ) (AuthUserService, error) {
 	if tokenMaker == nil || hasher == nil || urep == nil || accessTokenDuration <= 0 {
 		return nil, ErrCreateAuthUserService
@@ -63,19 +61,25 @@ func NewAuthUser(
 	return server, nil
 }
 
-func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (string, error) {
+func (s *authUserService) LoginUser(_ context.Context, lur LoginUserRequest) (string, error) {
 	user, err := s.userRep.GetByEmail(lur.Email)
 	if err != nil {
 		return "", err
 	}
-	if err = s.hasher.CheckPassword(lur.Password, user.HashPassword); err != nil {
+	if err := s.hasher.CheckPassword(lur.Password, user.HashPassword); err != nil {
 		return "", err
 	}
 	roles := make([]domain.RoleAuth, 0)
 	if user.IsAdmin {
 		roles = append(roles, domain.AdminRole)
 	}
-	accessToken, err := s.tokenMaker.CreateToken(user.ID, roles, s.accessTokenDuration)
+
+	payload, err := domain.NewTokenPayload(user.ID, roles, s.accessTokenDuration)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken, err := s.tokenMaker.CreateToken(payload)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +89,7 @@ func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (
 	return accessToken, nil
 }
 
-func (s *authUserService) RegisterUser(ctx context.Context, rur RegisterUserRequest) error {
+func (s *authUserService) RegisterUser(_ context.Context, rur RegisterUserRequest) error {
 	hashedPassword, err := s.hasher.HashPassword(rur.Password)
 	if err != nil {
 		return err
@@ -101,9 +105,27 @@ func (s *authUserService) RegisterUser(ctx context.Context, rur RegisterUserRequ
 }
 
 func (s *authUserService) VerifyByToken(tokenStr string, needRoles []domain.RoleAuth) (*domain.TokenPayload, error) {
-	return s.tokenMaker.VerifyToken(tokenStr, needRoles)
+	payload, err := s.tokenMaker.VerifyToken(tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, expectedRole := range needRoles {
+		found := false
+		for _, role := range payload.Roles {
+			if expectedRole == role {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, ErrIncorrectRole
+		}
+	}
+
+	return payload, nil
 }
 
-func (s *authUserService) LogoutUser(ctx context.Context, token string) {
+func (s *authUserService) LogoutUser(_ context.Context, token string) {
 	s.tokenRep.Delete(token)
 }

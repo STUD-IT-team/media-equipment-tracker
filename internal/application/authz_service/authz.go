@@ -3,6 +3,7 @@ package authzservice
 import (
 	"context"
 	"errors"
+
 	"media-equipment-tracker/internal/domain"
 )
 

@@ -1,21 +1,21 @@
 package middleware
 
 import (
-	"media-equipment-tracker/internal/adapters/inmem"
-	"media-equipment-tracker/internal/application/authz_service"
-	"media-equipment-tracker/internal/domain"
-	tokenmaker "media-equipment-tracker/internal/domain"
-	"media-equipment-tracker/internal/utils"
 	"net/http"
+
+	"media-equipment-tracker/internal/application/authservice"
+	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type TokenVerifier interface {
-	VerifyByToken(tokenStr string, needRoles []domain.RoleAuth) (*tokenmaker.TokenPayload, error)
+	VerifyByToken(tokenStr string, needRoles []domain.RoleAuth) (*domain.TokenPayload, error)
 }
 
-func AuthMiddleware(authZ authzservice.AuthZ, tokenRep inmem.TokenRepository, authServ TokenVerifier, needRoles []domain.RoleAuth) gin.HandlerFunc {
+func AuthMiddleware(authZ authzservice.AuthZ, tokenRep authservice.TokenRepository, authServ TokenVerifier, needRoles []domain.RoleAuth) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := utils.TokenFromHeader(c)
 		if err != nil {

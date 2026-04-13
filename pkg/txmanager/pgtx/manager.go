@@ -3,6 +3,7 @@ package pgtx
 import (
 	"context"
 	"errors"
+
 	"media-equipment-tracker/pkg/txmanager"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -65,7 +66,7 @@ func (m *PgTxManager) runTx(ctx context.Context, fn func(ctx context.Context) er
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback(ctx) //nolint:errcheck // Rollback'и обычно не обрабатываются, так как ошибка означает закрытие соединения, которое и так предполается при Rollback.
 		}
 	}()
 

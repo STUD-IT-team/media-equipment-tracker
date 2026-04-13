@@ -10,7 +10,7 @@ const (
 	PostgresDatabase        = "eqtracker"
 	TokenSymmetricKey       = "12345678901234567890123456789012"
 	AccessTokenDuration     = 24 * time.Hour
-	Api_version             = "/api/v1"
+	APIVersion              = "/api/v1"
 	AppPort                 = 8080
 	AuthorizationHeaderKey  = "authorization"
 	AuthorizationTypeBearer = "bearer"
