@@ -1,4 +1,4 @@
-package postgresrepo
+package pgequipment
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type EquipmentRepository struct {
+type PostgresEquipmentRepository struct {
 	db *gorm.DB
 }
 
-func NewEquipmentRepository(db *gorm.DB) domain.EquipmentRepository {
-	return &EquipmentRepository{db: db}
+func NewPostgresEquipmentRepository(db *gorm.DB) *PostgresEquipmentRepository {
+	return &PostgresEquipmentRepository{db: db}
 }
 
-func (r *EquipmentRepository) applyOptions(opts []domain.EquipmentOption) *gorm.DB {
+var _ domain.EquipmentRepository = (*PostgresEquipmentRepository)(nil)
+
+func (r *PostgresEquipmentRepository) applyOptions(opts []domain.EquipmentOption) *gorm.DB {
 	options := &domain.EquipmentOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -28,7 +30,7 @@ func (r *EquipmentRepository) applyOptions(opts []domain.EquipmentOption) *gorm.
 	return query
 }
 
-func (r *EquipmentRepository) Get(id uuid.UUID, with ...domain.EquipmentOption) (*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) Get(id uuid.UUID, with ...domain.EquipmentOption) (*domain.Equipment, error) {
 	var eq domain.Equipment
 	query := r.applyOptions(with)
 	if err := query.First(&eq, "id = ?", id).Error; err != nil {
@@ -40,7 +42,7 @@ func (r *EquipmentRepository) Get(id uuid.UUID, with ...domain.EquipmentOption) 
 	return &eq, nil
 }
 
-func (r *EquipmentRepository) GetUnoccupied(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) GetUnoccupied(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	var equipment []*domain.Equipment
 	query := r.applyOptions(with)
 	if err := query.Where("current_invocation_id IS NULL").Find(&equipment).Error; err != nil {
@@ -49,7 +51,7 @@ func (r *EquipmentRepository) GetUnoccupied(with ...domain.EquipmentOption) ([]*
 	return equipment, nil
 }
 
-func (r *EquipmentRepository) List(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) List(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	var equipment []*domain.Equipment
 	query := r.applyOptions(with)
 	if err := query.Find(&equipment).Error; err != nil {
@@ -58,7 +60,7 @@ func (r *EquipmentRepository) List(with ...domain.EquipmentOption) ([]*domain.Eq
 	return equipment, nil
 }
 
-func (r *EquipmentRepository) Reload(equipment *domain.Equipment, with ...domain.EquipmentOption) error {
+func (r *PostgresEquipmentRepository) Reload(equipment *domain.Equipment, with ...domain.EquipmentOption) error {
 	query := r.applyOptions(with)
 	if err := query.First(equipment, "id = ?", equipment.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
@@ -66,21 +68,21 @@ func (r *EquipmentRepository) Reload(equipment *domain.Equipment, with ...domain
 	return nil
 }
 
-func (r *EquipmentRepository) Create(equipment *domain.Equipment) error {
+func (r *PostgresEquipmentRepository) Create(equipment *domain.Equipment) error {
 	if err := r.db.Create(equipment).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *EquipmentRepository) Update(equipment *domain.Equipment) error {
+func (r *PostgresEquipmentRepository) Update(equipment *domain.Equipment) error {
 	if err := r.db.Save(equipment).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *EquipmentRepository) Delete(id uuid.UUID) error {
+func (r *PostgresEquipmentRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.Equipment{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

@@ -1,4 +1,4 @@
-package postgresrepo
+package pgequipmentinvocation
 
 import (
 	"media-equipment-tracker/internal/domain"
@@ -8,15 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type EquipmentInvocationRepository struct {
+type PostgresEquipmentInvocationRepository struct {
 	db *gorm.DB
 }
 
-func NewEquipmentInvocationRepository(db *gorm.DB) domain.EquipmentInvocationRepository {
-	return &EquipmentInvocationRepository{db: db}
+func NewPostgresEquipmentInvocationRepository(db *gorm.DB) *PostgresEquipmentInvocationRepository {
+	return &PostgresEquipmentInvocationRepository{db: db}
 }
 
-func (r *EquipmentInvocationRepository) applyOptions(opts []domain.EquipmentInvocationOption) *gorm.DB {
+var _ domain.EquipmentInvocationRepository = (*PostgresEquipmentInvocationRepository)(nil)
+
+func (r *PostgresEquipmentInvocationRepository) applyOptions(opts []domain.EquipmentInvocationOption) *gorm.DB {
 	options := &domain.EquipmentInvocationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -28,7 +30,7 @@ func (r *EquipmentInvocationRepository) applyOptions(opts []domain.EquipmentInvo
 	return query
 }
 
-func (r *EquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.EquipmentInvocationOption) (*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.EquipmentInvocationOption) (*domain.EquipmentInvocation, error) {
 	var inv domain.EquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
@@ -40,7 +42,7 @@ func (r *EquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.Equipme
 	return &inv, nil
 }
 
-func (r *EquipmentInvocationRepository) List(with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) List(with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	var invocations []*domain.EquipmentInvocation
 	query := r.applyOptions(with)
 	if err := query.Find(&invocations).Error; err != nil {
@@ -49,7 +51,7 @@ func (r *EquipmentInvocationRepository) List(with ...domain.EquipmentInvocationO
 	return invocations, nil
 }
 
-func (r *EquipmentInvocationRepository) Reload(equipmentInvocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
+func (r *PostgresEquipmentInvocationRepository) Reload(equipmentInvocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
 	query := r.applyOptions(with)
 	if err := query.First(equipmentInvocation, "id = ?", equipmentInvocation.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
@@ -57,21 +59,21 @@ func (r *EquipmentInvocationRepository) Reload(equipmentInvocation *domain.Equip
 	return nil
 }
 
-func (r *EquipmentInvocationRepository) Create(equipmentInvocation *domain.EquipmentInvocation) error {
+func (r *PostgresEquipmentInvocationRepository) Create(equipmentInvocation *domain.EquipmentInvocation) error {
 	if err := r.db.Create(equipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *EquipmentInvocationRepository) Update(equipmentInvocation *domain.EquipmentInvocation) error {
+func (r *PostgresEquipmentInvocationRepository) Update(equipmentInvocation *domain.EquipmentInvocation) error {
 	if err := r.db.Save(equipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *EquipmentInvocationRepository) Delete(id uuid.UUID) error {
+func (r *PostgresEquipmentInvocationRepository) Delete(id uuid.UUID) error {
 	if err := r.db.Delete(&domain.EquipmentInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

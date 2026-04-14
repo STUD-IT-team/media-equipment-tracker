@@ -1,6 +1,6 @@
 //go:build integration
 
-package postgresuser_test
+package pguser_test
 
 import (
 	"testing"
@@ -10,8 +10,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	postgresrepo "media-equipment-tracker/internal/adapters/postgres"
-	"media-equipment-tracker/internal/adapters/postgres/postgresuser"
+	"media-equipment-tracker/internal/adapters/postgres/pgdepartment"
+	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
+	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
 )
@@ -45,9 +46,9 @@ func (s *UserRelationsSuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.userRepo = postgresuser.NewPostgresUserRepository(gdb)
-	s.orgRepo = postgresrepo.NewOrganizationRepository(gdb)
-	s.deptRepo = postgresrepo.NewDepartmentRepository(gdb)
+	s.userRepo = pguser.NewPostgresUserRepository(gdb)
+	s.orgRepo = pgorganization.NewPostgresOrganizationRepository(gdb)
+	s.deptRepo = pgdepartment.NewPostgresDepartmentRepository(gdb)
 }
 
 func (s *UserRelationsSuite) TearDownSuite() {
