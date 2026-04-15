@@ -5,7 +5,7 @@
 * **domain** — модели и правила
 * **application** — use cases и сервисы
 * **handlers** — входящие интерфейсы (HTTP, gRPC и т.д.)
-* **adapters** — интеграции с внешними системами (БД, очереди, API)
+* **adapters** — интеграции с внешними системами или технические детали (БД, очереди, API)
 
 ---
 
@@ -19,17 +19,25 @@
 ├── deployments/
 ├── internal/
 │   ├── adapters/
-│   │   └── postgres/
+│   │   ├── postgres/
+│   │   ├── inmem/
+│   │   ├── bcrypthasher/
+│   │   └── jwt/
 │   ├── application/
-│   │   └── userservice/
+│   │   └── authservice/
 │   ├── domain/
-│   │   └── user/
+│   ├── middleware/
+│   ├── utils/
 │   └── handlers/
-│       └── http/
-|           └── user/
+│       └── authapi/
 ├── pkg/
 │   ├── logger/
+│   ├── pgtest/
+│   └── txmanager/
 ├── scripts/
+│   ├── test.sh
+│   ├── lint.sh
+│   └── exampler.py
 ├── LICENSE
 └── README.md
 ```
@@ -104,21 +112,18 @@ deployments/
 
 * бизнес-сущности
 * value objects
-* доменные интерфейсы (например repository interfaces)
+* доменные интерфейсы (например repository interfaces, интерфейсы адаптеров)
 
-Для каждого домена внутри создаётся пакет, отражающий его суть.
+Допустимо описывать весь домен в рамках одного пакета.
 
+Для упрощения проекта, допустимо в домене описывать сущности, отражающие таблицы базы данных, например в виде orm entities, как это реализуется в текущем проекте.
 Пример:
 
 ```text
 domain/
-  user/
-    user.go
-    role.go
-    user_repository.go
-  equipment/
-    equipment.go
-    equipment_repository.go
+  user.go
+  role.go
+  equipment.go
 ```
 
 ---
@@ -155,27 +160,26 @@ application/
 
 Слой **входящих интерфейсов (delivery layer)**.
 
-Внутри создаются подпакеты для каждого вида входящих интерфейсов, а внутри них для каждого роутера/сервиса. Внутри пакета роутера содержатся подпакеты с *dto* и *response*.
+Внутри создаются подпакеты для каждого вида входящих интерфейсов, а внутри них для каждого роутера/сервиса. Внутри пакета роутера содержатся подпакеты с *dto* и *response*. Допустимо напрямую использовать dto и response из соответствующих сервисов.
 
 Пример:
 
 ```text
 handlers/
-  http/
-    user/
-      handler.go
-      routes.go
-      dto/
-        create.go
-      response/
-        create.go
-    equipment/
-      handler.go
-      routes.go
-      dto/
-        register.go
-      response/
-        register.go
+  userapi/
+    handler.go
+    routes.go
+    dto/
+      create.go
+    response/
+      create.go
+  equipmentapi/
+    handler.go
+    routes.go
+    dto/
+      register.go
+    response/
+      register.go
 ```
 
 ---
@@ -192,19 +196,23 @@ handlers/
 * внешние API
 * брокеры сообщений
 * кэш
+* технические детали, например алгоритмы хеширования, подписи и т.д.
 
 Пример:
 
 ```text
 adapters/
   postgres/
-    userrepo/
+    pguser/
       user_repository.go
-    equipmentrepo/
+    pgequipment/
       equipment_repository.go
-
-  redis/
+  inmem/
     cache.go
+  bcrypthasher/
+    bcrypt_hasher.go
+  jwt/
+    jwt.go
 ```
 
 ---
@@ -219,10 +227,8 @@ adapters/
 pkg/
   logger/
     logger.go
-  errors/
-    errors.go
-  db/
-    postgres.go
+  pgtest/
+    pgtest.go
 ```
 
 ---
