@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresMessageEquipmentInvocationRepository struct {
@@ -52,14 +53,14 @@ func (r *PostgresMessageEquipmentInvocationRepository) GetInvocation(invocationI
 }
 
 func (r *PostgresMessageEquipmentInvocationRepository) Create(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
-	if err := r.db.Create(messageEquipmentInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Create(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *PostgresMessageEquipmentInvocationRepository) Update(messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
-	if err := r.db.Save(messageEquipmentInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Save(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
