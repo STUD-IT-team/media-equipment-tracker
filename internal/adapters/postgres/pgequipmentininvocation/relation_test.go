@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"media-equipment-tracker/internal/adapters/postgres/pgdepartment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipmentininvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
@@ -17,25 +18,16 @@ import (
 	"media-equipment-tracker/pkg/pgtest"
 )
 
-func newUser() *domain.User {
-	return &domain.User{
-		ID:           uuid.New(),
-		FullName:     "test",
-		Email:        uuid.NewString() + "@mail.ru",
-		HashPassword: "hash",
-		Nice:         domain.DefaultNice,
-	}
-}
-
 type EquipmentInInvocationRelationsSuite struct {
 	suite.Suite
 
-	db       *gorm.DB
-	pg       *pgtest.PgTestDatabase
-	repo     domain.EquipmentInInvocationRepository
-	invRepo  domain.EquipmentInvocationRepository
-	eqRepo   domain.EquipmentRepository
-	userRepo domain.UserRepository
+	db      *gorm.DB
+	pg      *pgtest.PgTestDatabase
+	repo    domain.EquipmentInInvocationRepository
+	invRepo domain.EquipmentInvocationRepository
+	eqRepo  domain.EquipmentRepository
+	UserID  uuid.UUID
+	DeptID  uuid.UUID
 }
 
 func (s *EquipmentInInvocationRelationsSuite) SetupSuite() {
@@ -44,6 +36,23 @@ func (s *EquipmentInInvocationRelationsSuite) SetupSuite() {
 
 	s.pg = pg
 	s.Require().NoError(pg.MigrateUp())
+
+	db := stdlib.OpenDBFromPool(s.pg.Pool())
+	gdb, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: db,
+	}), &gorm.Config{})
+
+	userRepo := pguser.NewPostgresUserRepository(gdb)
+	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gdb)
+
+	user := newUser()
+	dept := newDept()
+	s.UserID = user.ID
+	s.DeptID = dept.ID
+
+	s.Require().NoError(userRepo.Create(user))
+	s.Require().NoError(deptRepo.Create(dept))
+
 	s.Require().NoError(pg.CreateTemplate())
 }
 
@@ -65,18 +74,45 @@ func (s *EquipmentInInvocationRelationsSuite) SetupTest() {
 	s.repo = pgequipmentininvocation.NewPostgresEquipmentInInvocationRepository(gdb)
 	s.invRepo = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
 	s.eqRepo = pgequipment.NewPostgresEquipmentRepository(gdb)
-	s.userRepo = pguser.NewPostgresUserRepository(gdb)
 }
 
 // --- Invocation (belongs to) ---
 
-func (s *EquipmentInInvocationRelationsSuite) TestInvocation_Preload() {
-	user := newUser()
-	inv := newInvocation(uuid.New(), user.ID)
+func (s *EquipmentInInvocationRelationsSuite) TestInvocation_AutoCreate() {
+	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.userRepo.Create(user))
+	s.Require().NoError(s.eqRepo.Create(eq))
+
+	// FK ошибка
+	s.Require().Error(s.repo.Create(eii))
+	_, err := s.invRepo.Get(inv.ID)
+	s.Error(err)
+}
+
+func (s *EquipmentInInvocationRelationsSuite) TestInvocation_AutoCreateOnUpdate() {
+	inv := newInvocation(s.DeptID, s.UserID)
+	eq := newEquipment()
+	eii := newEqInInv(inv.ID, eq.ID)
+
+	s.Require().NoError(s.eqRepo.Create(eq))
+
+	inv2 := newInvocation(s.DeptID, s.UserID)
+	eii.InvocationID = inv2.ID
+	eii.Invocation = inv2
+	// FK ошибка
+	s.Require().Error(s.repo.Update(eii))
+
+	_, err := s.invRepo.Get(inv2.ID)
+	s.Error(err)
+}
+
+func (s *EquipmentInInvocationRelationsSuite) TestInvocation_Preload() {
+	inv := newInvocation(s.DeptID, s.UserID)
+	eq := newEquipment()
+	eii := newEqInInv(inv.ID, eq.ID)
+
 	s.Require().NoError(s.invRepo.Create(inv))
 	s.Require().NoError(s.eqRepo.Create(eq))
 	s.Require().NoError(s.repo.Create(eii))
@@ -92,12 +128,10 @@ func (s *EquipmentInInvocationRelationsSuite) TestInvocation_Preload() {
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestInvocation_NoUpdateThroughEquipmentInInvocation() {
-	user := newUser()
-	inv := newInvocation(uuid.New(), user.ID)
+	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.userRepo.Create(user))
 	s.Require().NoError(s.invRepo.Create(inv))
 	s.Require().NoError(s.eqRepo.Create(eq))
 	s.Require().NoError(s.repo.Create(eii))
@@ -116,13 +150,41 @@ func (s *EquipmentInInvocationRelationsSuite) TestInvocation_NoUpdateThroughEqui
 
 // --- Equipment (belongs to) ---
 
-func (s *EquipmentInInvocationRelationsSuite) TestEquipment_Preload() {
-	user := newUser()
-	inv := newInvocation(uuid.New(), user.ID)
+func (s *EquipmentInInvocationRelationsSuite) TestEquipment_AutoCreate() {
+	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.userRepo.Create(user))
+	s.Require().NoError(s.invRepo.Create(inv))
+
+	// FK ошибка
+	s.Require().Error(s.repo.Create(eii))
+	_, err := s.eqRepo.Get(eq.ID)
+	s.Error(err)
+}
+
+func (s *EquipmentInInvocationRelationsSuite) TestEquipment_AutoCreateOnUpdate() {
+	inv := newInvocation(s.DeptID, s.UserID)
+	eq := newEquipment()
+	eii := newEqInInv(inv.ID, eq.ID)
+
+	s.Require().NoError(s.invRepo.Create(inv))
+
+	eq2 := newEquipment()
+	eii.EquipmentID = eq2.ID
+	eii.Equipment = eq2
+	// FK ошибка
+	s.Require().Error(s.repo.Update(eii))
+
+	_, err := s.eqRepo.Get(eq2.ID)
+	s.Error(err)
+}
+
+func (s *EquipmentInInvocationRelationsSuite) TestEquipment_Preload() {
+	inv := newInvocation(s.DeptID, s.UserID)
+	eq := newEquipment()
+	eii := newEqInInv(inv.ID, eq.ID)
+
 	s.Require().NoError(s.invRepo.Create(inv))
 	s.Require().NoError(s.eqRepo.Create(eq))
 	s.Require().NoError(s.repo.Create(eii))
@@ -138,12 +200,10 @@ func (s *EquipmentInInvocationRelationsSuite) TestEquipment_Preload() {
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestEquipment_NoUpdateThroughEquipmentInInvocation() {
-	user := newUser()
-	inv := newInvocation(uuid.New(), user.ID)
+	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.userRepo.Create(user))
 	s.Require().NoError(s.invRepo.Create(inv))
 	s.Require().NoError(s.eqRepo.Create(eq))
 	s.Require().NoError(s.repo.Create(eii))

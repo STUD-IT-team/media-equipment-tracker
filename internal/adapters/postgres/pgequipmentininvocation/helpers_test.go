@@ -7,6 +7,23 @@ import (
 	"github.com/google/uuid"
 )
 
+func newUser() *domain.User {
+	return &domain.User{
+		ID:           uuid.New(),
+		FullName:     "test",
+		Email:        uuid.NewString() + "@mail.ru",
+		HashPassword: "hash",
+		Nice:         domain.DefaultNice,
+	}
+}
+
+func newDept() *domain.Department {
+	return &domain.Department{
+		ID:   uuid.New(),
+		Name: "dept",
+	}
+}
+
 func newEquipment() *domain.Equipment {
 	return &domain.Equipment{
 		ID:              uuid.New(),
