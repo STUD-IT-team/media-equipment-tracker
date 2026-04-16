@@ -1,3 +1,5 @@
+//go:build integration
+
 package pgequipment_test
 
 import (

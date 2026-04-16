@@ -17,7 +17,7 @@ type Equipment struct {
 	// Не сохраняется (только ID)
 	CurrentInvocation *EquipmentInvocation `gorm:"foreignKey:CurrentInvocationID;constraint:OnDelete:SET NULL"`
 
-	// Не сохраняется 
+	// Не сохраняется
 	Invocations []*EquipmentInInvocation `gorm:"foreignKey:EquipmentID"`
 
 	// Не сохраняется

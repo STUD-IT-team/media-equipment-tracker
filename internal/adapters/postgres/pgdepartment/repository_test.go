@@ -1,3 +1,5 @@
+//go:build integration
+
 package pgdepartment_test
 
 import (

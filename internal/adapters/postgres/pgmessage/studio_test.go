@@ -1,3 +1,5 @@
+//go:build integration
+
 package pgmessage_test
 
 import (

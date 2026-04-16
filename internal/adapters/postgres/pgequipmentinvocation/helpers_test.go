@@ -1,3 +1,5 @@
+//go:build integration
+
 package pgequipmentinvocation_test
 
 import (
