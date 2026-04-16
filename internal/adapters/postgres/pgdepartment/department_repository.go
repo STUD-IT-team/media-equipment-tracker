@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresDepartmentRepository struct {
@@ -60,17 +61,45 @@ func (r *PostgresDepartmentRepository) Reload(department *domain.Department, wit
 }
 
 func (r *PostgresDepartmentRepository) Create(department *domain.Department) error {
-	if err := r.db.Create(department).Error; err != nil {
+	tx := r.db.Begin()
+	defer tx.Rollback()
+	if err := tx.Omit(clause.Associations).Create(department).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
-	return nil
+
+	if department.Equipment != nil {
+		tx.Exec("DELETE FROM equipment_department WHERE department_id = ?", department.ID)
+		for _, e := range department.Equipment {
+			if err := tx.Exec(
+				"INSERT INTO equipment_department (department_id, equipment_id) VALUES (?, ?)",
+				department.ID, e.ID,
+			).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit().Error
 }
 
 func (r *PostgresDepartmentRepository) Update(department *domain.Department) error {
-	if err := r.db.Save(department).Error; err != nil {
+	tx := r.db.Begin()
+	defer tx.Rollback()
+	if err := tx.Omit(clause.Associations).Save(department).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
-	return nil
+
+	if department.Equipment != nil {
+		tx.Exec("DELETE FROM equipment_department WHERE department_id = ?", department.ID)
+		for _, e := range department.Equipment {
+			if err := tx.Exec(
+				"INSERT INTO equipment_department (department_id, equipment_id) VALUES (?, ?)",
+				department.ID, e.ID,
+			).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit().Error
 }
 
 func (r *PostgresDepartmentRepository) Delete(id uuid.UUID) error {
