@@ -11,25 +11,25 @@ type EquipmentInvocation struct {
 	EventName           string                    `gorm:"column:event_name;type:varchar(255);not null"`
 	StartTime           time.Time                 `gorm:"column:start_time;type:timestamptz;not null;index:idx_equipment_invocation_start_time"`
 	EndTime             time.Time                 `gorm:"column:end_time;type:timestamptz;not null;index:idx_equipment_invocation_end_time"`
-	EquipmentReturnTime time.Time                 `gorm:"column:equipment_return_time;type:timestamptz;not null"`
-	SdCardReturnTime    time.Time                 `gorm:"column:sd_card_return_time;type:timestamptz;not null"`
+	EquipmentReturnTime *time.Time                `gorm:"column:equipment_return_time;type:timestamptz"`
+	SdCardReturnTime    *time.Time                `gorm:"column:sd_card_return_time;type:timestamptz"`
 	Status              EquipmentInvocationStatus `gorm:"type:equipment_invocation_status"`
 	CuratorComment      string                    `gorm:"column:curator_comment;type:text"`
 
 	OrganizationID *uuid.UUID `gorm:"column:organization_id;type:uuid"`
-	// Не сохраняется (только ID)
+	// Сохраняется (только сама связь, не создаёт и не обновляет Organization)
 	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
 
 	DepartmentID *uuid.UUID `gorm:"column:department_id;type:uuid"`
-	// Не сохраняется (только ID)
+	// Сохраняется (только сама связь, не создаёт и не обновляет Department)
 	Department *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
 
 	UserID uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-	// Не сохраняется (только ID)
+	// Cохраняется (только сама связь, не создаёт и не обновляет User)
 	User *User `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
 
 	AdminID *uuid.UUID `gorm:"column:admin_id;type:uuid"`
-	// Не сохраняется (только ID)
+	// Cохраняется (только сама связь, не создаёт и не обновляет User)
 	Admin *User `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
 
 	// Сохраняется (только сама связь, не создаёт и не обновляет Equipment)
