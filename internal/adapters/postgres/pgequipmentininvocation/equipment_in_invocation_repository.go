@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresEquipmentInInvocationRepository struct {
@@ -61,14 +62,14 @@ func (r *PostgresEquipmentInInvocationRepository) GetByEquipment(equipmentID uui
 }
 
 func (r *PostgresEquipmentInInvocationRepository) Create(equipmentInInvocation *domain.EquipmentInInvocation) error {
-	if err := r.db.Create(equipmentInInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Create(equipmentInInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *PostgresEquipmentInInvocationRepository) Update(equipmentInInvocation *domain.EquipmentInInvocation) error {
-	if err := r.db.Save(equipmentInInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Save(equipmentInInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil

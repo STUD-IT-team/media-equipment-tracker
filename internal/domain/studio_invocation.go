@@ -18,15 +18,15 @@ type StudioInvocation struct {
 	Status              StudioInvocationStatus `gorm:"type:studio_invocation_status;not null"`
 	CuratorComment      string                 `gorm:"column:curator_comment;type:text"`
 
-	OrganizationID uuid.UUID `gorm:"column:organization_id;type:uuid;not null"`
+	OrganizationID *uuid.UUID `gorm:"column:organization_id;type:uuid"`
 	// Не сохраняется (только ID)
 	Organization *Organization `gorm:"foreignKey:OrganizationID;constraint:OnDelete:SET NULL"`
 
-	DepartmentID uuid.UUID `gorm:"column:department_id;type:uuid;not null"`
+	DepartmentID *uuid.UUID `gorm:"column:department_id;type:uuid"`
 	// Не сохраняется (только ID)
 	Department *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL"`
 
-	AdminID uuid.UUID `gorm:"column:admin_id;type:uuid;not null"`
+	AdminID *uuid.UUID `gorm:"column:admin_id;type:uuid"`
 	// Не сохраняется (только ID)
 	Admin *User `gorm:"foreignKey:AdminID;constraint:OnDelete:SET NULL"`
 

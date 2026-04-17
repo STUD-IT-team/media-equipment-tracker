@@ -9,13 +9,13 @@ type Organization struct {
 	Name string    `gorm:"type:varchar(255);not null"`
 
 	// Не сохраняется
-	Users []User `gorm:"many2many:user_organization;foreignKey:ID;joinForeignKey:organization_id;References:ID;joinReferences:user_id"`
+	Users []*User `gorm:"many2many:user_organization;foreignKey:ID;joinForeignKey:organization_id;References:ID;joinReferences:user_id"`
 
 	// Не сохраняется
-	EquipmentInvocations []EquipmentInvocation `gorm:"foreignKey:OrganizationID"`
+	EquipmentInvocations []*EquipmentInvocation `gorm:"foreignKey:OrganizationID"`
 
 	// Не сохраняется
-	StudioInvocations []StudioInvocation `gorm:"foreignKey:OrganizationID"`
+	StudioInvocations []*StudioInvocation `gorm:"foreignKey:OrganizationID"`
 }
 
 func (Organization) TableName() string {

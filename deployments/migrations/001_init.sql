@@ -48,8 +48,8 @@ CREATE TABLE equipment_invocation
     event_name            VARCHAR(255) NOT NULL,
     start_time            TIMESTAMPTZ  NOT NULL,
     end_time              TIMESTAMPTZ  NOT NULL,
-    equipment_return_time TIMESTAMPTZ  NOT NULL,
-    sd_card_return_time   TIMESTAMPTZ  NOT NULL,
+    equipment_return_time TIMESTAMPTZ,
+    sd_card_return_time   TIMESTAMPTZ,
     status                equipment_invocation_status,
     curator_comment       TEXT,
 
@@ -101,7 +101,8 @@ CREATE TABLE equipment_in_invocation
     equipment_id  UUID NOT NULL,
     status        equipment_in_invocation_status,
     FOREIGN KEY (invocation_id) REFERENCES equipment_invocation (id) ON DELETE CASCADE,
-    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE
+    FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE CASCADE,
+    PRIMARY KEY (invocation_id, equipment_id)
 );
 
 CREATE TABLE message_equipment_invocation
@@ -135,7 +136,8 @@ CREATE TABLE equipment_department
     equipment_id  UUID,
     department_id UUID,
     FOREIGN KEY (equipment_id) REFERENCES equipment (id) ON DELETE SET NULL,
-    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL
+    FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL,
+    PRIMARY KEY (equipment_id, department_id)
 );
 
 CREATE TYPE studio_invocation_status AS ENUM (
@@ -160,15 +162,21 @@ CREATE TABLE studio_invocation
     status               studio_invocation_status NOT NULL,
     curator_comment      TEXT,
 
-    organization_id      UUID                     NOT NULL,
-    department_id        UUID                     NOT NULL,
+    organization_id      UUID                     ,
+    department_id        UUID                     ,
     user_id              UUID                     NOT NULL,
-    admin_id             UUID                     NOT NULL,
+    admin_id             UUID                    ,
     FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL,
     FOREIGN KEY (department_id) REFERENCES department (id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
     FOREIGN KEY (admin_id) REFERENCES "user" (id) ON DELETE SET NULL
 );
+
+ALTER TABLE studio_invocation
+    ADD CONSTRAINT exactly_one_not_null CHECK (
+        (organization_id IS NOT NULL AND department_id IS NULL) OR
+        (organization_id IS NULL AND department_id IS NOT NULL)
+    );
 
 
 CREATE TABLE message_studio_invocation

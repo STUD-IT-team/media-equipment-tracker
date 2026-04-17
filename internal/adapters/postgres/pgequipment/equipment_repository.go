@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresEquipmentRepository struct {
@@ -69,14 +70,14 @@ func (r *PostgresEquipmentRepository) Reload(equipment *domain.Equipment, with .
 }
 
 func (r *PostgresEquipmentRepository) Create(equipment *domain.Equipment) error {
-	if err := r.db.Create(equipment).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Create(equipment).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *PostgresEquipmentRepository) Update(equipment *domain.Equipment) error {
-	if err := r.db.Save(equipment).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Save(equipment).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil

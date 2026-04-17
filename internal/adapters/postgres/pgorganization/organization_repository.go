@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresOrganizationRepository struct {
@@ -81,7 +82,7 @@ func (r *PostgresOrganizationRepository) Reload(organization *domain.Organizatio
 }
 
 func (r *PostgresOrganizationRepository) Create(organization *domain.Organization) error {
-	err := r.db.Create(organization).Error
+	err := r.db.Omit(clause.Associations).Create(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -89,7 +90,7 @@ func (r *PostgresOrganizationRepository) Create(organization *domain.Organizatio
 }
 
 func (r *PostgresOrganizationRepository) Update(organization *domain.Organization) error {
-	err := r.db.Save(organization).Error
+	err := r.db.Omit(clause.Associations).Save(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("update", err)
 	}

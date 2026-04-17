@@ -16,19 +16,19 @@ type User struct {
 	Nice         int       `gorm:"type:int;check:nice > 0;not null"`
 	IsAdmin      bool      `gorm:"column:is_admin;type:boolean"`
 
-	// Сохраняется (только ID)
+	// Сохраняется (только сама связь, не создаёт и не обновляет Organization)
 	Organizations []*Organization `gorm:"many2many:user_organization;foreignKey:ID;joinForeignKey:user_id;References:ID;joinReferences:organization_id"`
 	// Cохраняется (только сама связь, не создаёт и не обновляет Department)
 	Departments []*UserDepartment `gorm:"foreignKey:UserID"`
 
-	// Сохраняется (только ID)
+	// Не сохраняется
 	EquipmentInvocations []*EquipmentInvocation `gorm:"foreignKey:UserID"`
-	// Сохраняется (только ID)
+	// Не сохраняется
 	AdminEquipmentInvocations []*EquipmentInvocation `gorm:"foreignKey:AdminID"`
 
-	// Сохраняется (только ID)
+	// Не сохраняется
 	StudioInvocations []*StudioInvocation `gorm:"foreignKey:UserID"`
-	// Сохраняется (только ID)
+	// Не сохраняется
 	AdminStudioInvocations []*StudioInvocation `gorm:"foreignKey:AdminID"`
 }
 
@@ -83,7 +83,7 @@ func UserWithOrganizations() UserOption {
 func UserWithDepartments() UserOption {
 	return func(options *UserOptions) {
 		options.withDepartments = true
-		options.relations = append(options.relations, "Departments")
+		options.relations = append(options.relations, "Departments.Department")
 	}
 }
 

@@ -57,7 +57,7 @@ func (s *UserRelationsSuite) TearDownSuite() {
 
 // --- Organizations (many2many) ---
 
-func (s *UserRelationsSuite) TestOrganizations_Preload_And_SaveOnlyIDs() {
+func (s *UserRelationsSuite) TestOrganizations_Preload() {
 	u := newUser()
 	org := newOrg()
 
@@ -66,62 +66,130 @@ func (s *UserRelationsSuite) TestOrganizations_Preload_And_SaveOnlyIDs() {
 	u.Organizations = []*domain.Organization{org}
 	s.Require().NoError(s.userRepo.Create(u))
 
-	// без preload — пусто
+	// без preload
 	raw, _ := s.userRepo.Get(u.ID)
 	s.Empty(raw.Organizations)
 
-	// с preload — есть
+	// с preload
 	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
 	s.Len(with.Organizations, 1)
 	s.Equal(org.ID, with.Organizations[0].ID)
+}
+
+func (s *UserRelationsSuite) TestOrganizations_NoAutoCreate() {
+	u := newUser()
+	org := newOrg()
+
+	u.Organizations = []*domain.Organization{org}
+
+	// ошибка FK
+	s.Require().Error(s.userRepo.Create(u))
+}
+
+func (s *UserRelationsSuite) TestOrganizations_NoUpdateThroughUser() {
+	u := newUser()
+	org := newOrg()
+
+	s.Require().NoError(s.orgRepo.Create(org))
+	s.Require().NoError(s.userRepo.Create(u))
+
+	u.Organizations = []*domain.Organization{org}
+	s.Require().NoError(s.userRepo.Update(u))
+
+	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
+	s.NotNil(with)
+
+	with.Organizations[0].Name = "HACKED"
+
+	s.Require().NoError(s.userRepo.Update(with))
+	got, _ := s.orgRepo.Get(org.ID)
+	s.NotEqual("HACKED", got.Name)
+}
+
+func (s *UserRelationsSuite) TestOrganizations_NoAutoCreateOnUpdate() {
+	u := newUser()
+	org := newOrg()
+
+	s.Require().NoError(s.userRepo.Create(u))
+
+	u.Organizations = []*domain.Organization{org}
+	// ошибка FK
+	s.Require().Error(s.userRepo.Update(u))
+
+	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
+	s.NotNil(with)
+	s.Empty(with.Organizations)
 }
 
 // --- Departments (join entity) ---
 
 func (s *UserRelationsSuite) TestDepartments_Relation_And_Reload() {
 	u := newUser()
-	dept := newDept()
+	dep := newDept()
 
-	s.Require().NoError(s.deptRepo.Create(dept))
+	s.Require().NoError(s.deptRepo.Create(dep))
 	s.Require().NoError(s.userRepo.Create(u))
 
-	link := &domain.UserDepartment{
+	u.Departments = []*domain.UserDepartment{{
 		UserID:       u.ID,
-		DepartmentID: dept.ID,
-		Role:         domain.RoleTrainee,
-	}
+		DepartmentID: dep.ID,
+		Role:         domain.RoleActivist,
+	}}
+	s.Require().NoError(s.userRepo.Update(u))
 
-	// preload
-	got, _ := s.userRepo.Get(u.ID, domain.UserWithDepartments())
-	s.Len(got.Departments, 0)
+	// без preload
+	raw, _ := s.userRepo.Get(u.ID)
+	s.Empty(raw.Departments)
 
-	// add link
-	got.Departments = append(got.Departments, link)
-	s.userRepo.Update(got)
-
-	// reload
-	u.Departments = nil
-	s.Require().NoError(s.userRepo.Reload(u, domain.UserWithDepartments()))
-	s.Len(u.Departments, 1)
+	// с preload
+	with, _ := s.userRepo.Get(u.ID, domain.UserWithDepartments())
+	s.Len(with.Departments, 1)
+	s.Equal(dep.ID, with.Departments[0].DepartmentID)
+	s.Equal(domain.RoleActivist, with.Departments[0].Role)
 }
 
 func (s *UserRelationsSuite) TestDepartments_NoAutoCreate() {
 	u := newUser()
-	dept := newDept()
+	dep := newDept()
 
 	u.Departments = []*domain.UserDepartment{
 		{
 			UserID:       u.ID,
-			DepartmentID: dept.ID,
+			DepartmentID: dep.ID,
 			Role:         domain.RoleTrainee,
 		},
 	}
 
-	// создаём пользователя — департамент не должен создаться
-	s.Require().Error(s.userRepo.Create(u))
+	// FK ошибка
+	err := s.userRepo.Create(u)
+	s.Error(err)
 
-	_, err := s.deptRepo.Get(dept.ID)
-	s.Error(err) // департамент не появился
+	_, err = s.deptRepo.Get(dep.ID)
+	s.Error(err)
+}
+
+func (s *UserRelationsSuite) TestDepartments_NoUpdateThroughUser() {
+	u := newUser()
+	dep := newDept()
+
+	s.Require().NoError(s.deptRepo.Create(dep))
+	s.Require().NoError(s.userRepo.Create(u))
+
+	u.Departments = []*domain.UserDepartment{{
+		UserID:       u.ID,
+		DepartmentID: dep.ID,
+		Role:         domain.RoleTrainee,
+	}}
+	s.Require().NoError(s.userRepo.Update(u))
+
+	with, _ := s.userRepo.Get(u.ID, domain.UserWithDepartments())
+	s.NotNil(with)
+
+	with.Departments[0].Department.Name = "HACKED"
+
+	s.Require().NoError(s.userRepo.Update(with))
+	got, _ := s.deptRepo.Get(dep.ID)
+	s.NotEqual("HACKED", got.Name)
 }
 
 // ===== run =====

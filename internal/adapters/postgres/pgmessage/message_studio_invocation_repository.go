@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresMessageStudioInvocationRepository struct {
@@ -52,14 +53,14 @@ func (r *PostgresMessageStudioInvocationRepository) GetInvocation(invocationID u
 }
 
 func (r *PostgresMessageStudioInvocationRepository) Create(messageStudioInvocation *domain.MessageStudioInvocation) error {
-	if err := r.db.Create(messageStudioInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Create(messageStudioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
 func (r *PostgresMessageStudioInvocationRepository) Update(messageStudioInvocation *domain.MessageStudioInvocation) error {
-	if err := r.db.Save(messageStudioInvocation).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Save(messageStudioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
