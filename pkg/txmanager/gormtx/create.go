@@ -116,5 +116,5 @@ func New(opts ...GormTxOption) (*DBGetter, *GormTxManager, error) {
 		return nil, nil, err
 	}
 
-	return newDBGetter(db), newGormTxManager(db, int(config.retryCount)), nil
+	return NewDBGetter(db), NewGormTxManager(db, int(config.retryCount)), nil
 }

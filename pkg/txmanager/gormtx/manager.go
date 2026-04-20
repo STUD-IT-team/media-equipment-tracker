@@ -14,7 +14,7 @@ type GormTxManager struct {
 	retryCount int
 }
 
-func newGormTxManager(db *gorm.DB, retryCount int) *GormTxManager {
+func NewGormTxManager(db *gorm.DB, retryCount int) *GormTxManager {
 	return &GormTxManager{
 		db:         db,
 		retryCount: retryCount,
@@ -59,21 +59,15 @@ func (m *GormTxManager) WithinTx(ctx context.Context, fn func(ctx context.Contex
 }
 
 func (m *GormTxManager) runTx(ctx context.Context, fn func(ctx context.Context) error) error {
-	tx := m.db.Begin()
-	defer func() {
-		if err := recover(); err != nil {
-			tx.Rollback()
+	err := m.db.Transaction(func(tx *gorm.DB) error {
+		ctx = setTxCtx(ctx, tx)
+
+		err := fn(ctx)
+		if err != nil {
+			return txmanager.WrapTransactionClosureError(err)
 		}
-	}()
-
-	ctx = setTxCtx(ctx, tx)
-
-	err := fn(ctx)
-	if err != nil {
-		return txmanager.WrapTransactionClosureError(err)
-	}
-
-	err = tx.Commit().Error
+		return nil
+	})
 	if err != nil {
 		return txmanager.WrapCommitError(err)
 	}

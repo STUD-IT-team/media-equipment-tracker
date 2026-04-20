@@ -14,7 +14,7 @@ type DBGetter struct {
 	db *gorm.DB
 }
 
-func newDBGetter(db *gorm.DB) *DBGetter {
+func NewDBGetter(db *gorm.DB) *DBGetter {
 	return &DBGetter{db: db}
 }
 
