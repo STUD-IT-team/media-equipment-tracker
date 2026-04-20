@@ -3,6 +3,7 @@
 package pguser_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -15,6 +16,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type UserRelationsSuite struct {
@@ -43,12 +45,13 @@ func (s *UserRelationsSuite) SetupTest() {
 	gdb, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
+
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.userRepo = pguser.NewPostgresUserRepository(gdb)
-	s.orgRepo = pgorganization.NewPostgresOrganizationRepository(gdb)
-	s.deptRepo = pgdepartment.NewPostgresDepartmentRepository(gdb)
+	s.userRepo = pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
+	s.orgRepo = pgorganization.NewPostgresOrganizationRepository(gormtx.NewDBGetter(gdb))
+	s.deptRepo = pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *UserRelationsSuite) TearDownSuite() {
@@ -58,65 +61,69 @@ func (s *UserRelationsSuite) TearDownSuite() {
 // --- Organizations (many2many) ---
 
 func (s *UserRelationsSuite) TestOrganizations_Preload() {
+	ctx := context.Background()
 	u := newUser()
 	org := newOrg()
 
-	s.Require().NoError(s.orgRepo.Create(org))
+	s.Require().NoError(s.orgRepo.Create(ctx, org))
 
 	u.Organizations = []*domain.Organization{org}
-	s.Require().NoError(s.userRepo.Create(u))
+	s.Require().NoError(s.userRepo.Create(ctx, u))
 
 	// без preload
-	raw, _ := s.userRepo.Get(u.ID)
+	raw, _ := s.userRepo.Get(ctx, u.ID)
 	s.Empty(raw.Organizations)
 
 	// с preload
-	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
+	with, _ := s.userRepo.Get(ctx, u.ID, domain.UserWithOrganizations())
 	s.Len(with.Organizations, 1)
 	s.Equal(org.ID, with.Organizations[0].ID)
 }
 
 func (s *UserRelationsSuite) TestOrganizations_NoAutoCreate() {
+	ctx := context.Background()
 	u := newUser()
 	org := newOrg()
 
 	u.Organizations = []*domain.Organization{org}
 
 	// ошибка FK
-	s.Require().Error(s.userRepo.Create(u))
+	s.Require().Error(s.userRepo.Create(ctx, u))
 }
 
 func (s *UserRelationsSuite) TestOrganizations_NoUpdateThroughUser() {
+	ctx := context.Background()
 	u := newUser()
 	org := newOrg()
 
-	s.Require().NoError(s.orgRepo.Create(org))
-	s.Require().NoError(s.userRepo.Create(u))
+	s.Require().NoError(s.orgRepo.Create(ctx, org))
+	s.Require().NoError(s.userRepo.Create(ctx, u))
 
 	u.Organizations = []*domain.Organization{org}
-	s.Require().NoError(s.userRepo.Update(u))
+	s.Require().NoError(s.userRepo.Update(ctx, u))
 
-	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
+	with, _ := s.userRepo.Get(ctx, u.ID, domain.UserWithOrganizations())
 	s.NotNil(with)
 
 	with.Organizations[0].Name = "HACKED"
 
-	s.Require().NoError(s.userRepo.Update(with))
-	got, _ := s.orgRepo.Get(org.ID)
+	s.Require().NoError(s.userRepo.Update(ctx, with))
+	got, _ := s.orgRepo.Get(ctx, org.ID)
 	s.NotEqual("HACKED", got.Name)
 }
 
 func (s *UserRelationsSuite) TestOrganizations_NoAutoCreateOnUpdate() {
+	ctx := context.Background()
 	u := newUser()
 	org := newOrg()
 
-	s.Require().NoError(s.userRepo.Create(u))
+	s.Require().NoError(s.userRepo.Create(ctx, u))
 
 	u.Organizations = []*domain.Organization{org}
 	// ошибка FK
-	s.Require().Error(s.userRepo.Update(u))
+	s.Require().Error(s.userRepo.Update(ctx, u))
 
-	with, _ := s.userRepo.Get(u.ID, domain.UserWithOrganizations())
+	with, _ := s.userRepo.Get(ctx, u.ID, domain.UserWithOrganizations())
 	s.NotNil(with)
 	s.Empty(with.Organizations)
 }
@@ -124,31 +131,33 @@ func (s *UserRelationsSuite) TestOrganizations_NoAutoCreateOnUpdate() {
 // --- Departments (join entity) ---
 
 func (s *UserRelationsSuite) TestDepartments_Relation_And_Reload() {
+	ctx := context.Background()
 	u := newUser()
 	dep := newDept()
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(u))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, u))
 
 	u.Departments = []*domain.UserDepartment{{
 		UserID:       u.ID,
 		DepartmentID: dep.ID,
 		Role:         domain.RoleActivist,
 	}}
-	s.Require().NoError(s.userRepo.Update(u))
+	s.Require().NoError(s.userRepo.Update(ctx, u))
 
 	// без preload
-	raw, _ := s.userRepo.Get(u.ID)
+	raw, _ := s.userRepo.Get(ctx, u.ID)
 	s.Empty(raw.Departments)
 
 	// с preload
-	with, _ := s.userRepo.Get(u.ID, domain.UserWithDepartments())
+	with, _ := s.userRepo.Get(ctx, u.ID, domain.UserWithDepartments())
 	s.Len(with.Departments, 1)
 	s.Equal(dep.ID, with.Departments[0].DepartmentID)
 	s.Equal(domain.RoleActivist, with.Departments[0].Role)
 }
 
 func (s *UserRelationsSuite) TestDepartments_NoAutoCreate() {
+	ctx := context.Background()
 	u := newUser()
 	dep := newDept()
 
@@ -161,34 +170,35 @@ func (s *UserRelationsSuite) TestDepartments_NoAutoCreate() {
 	}
 
 	// FK ошибка
-	err := s.userRepo.Create(u)
+	err := s.userRepo.Create(ctx, u)
 	s.Error(err)
 
-	_, err = s.deptRepo.Get(dep.ID)
+	_, err = s.deptRepo.Get(ctx, dep.ID)
 	s.Error(err)
 }
 
 func (s *UserRelationsSuite) TestDepartments_NoUpdateThroughUser() {
+	ctx := context.Background()
 	u := newUser()
 	dep := newDept()
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(u))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, u))
 
 	u.Departments = []*domain.UserDepartment{{
 		UserID:       u.ID,
 		DepartmentID: dep.ID,
 		Role:         domain.RoleTrainee,
 	}}
-	s.Require().NoError(s.userRepo.Update(u))
+	s.Require().NoError(s.userRepo.Update(ctx, u))
 
-	with, _ := s.userRepo.Get(u.ID, domain.UserWithDepartments())
+	with, _ := s.userRepo.Get(ctx, u.ID, domain.UserWithDepartments())
 	s.NotNil(with)
 
 	with.Departments[0].Department.Name = "HACKED"
 
-	s.Require().NoError(s.userRepo.Update(with))
-	got, _ := s.deptRepo.Get(dep.ID)
+	s.Require().NoError(s.userRepo.Update(ctx, with))
+	got, _ := s.deptRepo.Get(ctx, dep.ID)
 	s.NotEqual("HACKED", got.Name)
 }
 

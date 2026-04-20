@@ -3,6 +3,7 @@
 package pgmessage_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type MessageEquipmentInvocationRelationsSuite struct {
@@ -44,9 +46,10 @@ func (s *MessageEquipmentInvocationRelationsSuite) SetupSuite() {
 
 	s.Require().NoError(err)
 
-	invRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
-	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gdb)
-	userRepo := pguser.NewPostgresUserRepository(gdb)
+	ctx := context.Background()
+	invRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
+	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
+	userRepo := pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
 
 	dept := newDepartment()
 	user := newUser()
@@ -54,9 +57,9 @@ func (s *MessageEquipmentInvocationRelationsSuite) SetupSuite() {
 
 	s.invID = inv.ID
 
-	s.Require().NoError(deptRepo.Create(dept))
-	s.Require().NoError(userRepo.Create(user))
-	s.Require().NoError(invRepo.Create(inv))
+	s.Require().NoError(deptRepo.Create(ctx, dept))
+	s.Require().NoError(userRepo.Create(ctx, user))
+	s.Require().NoError(invRepo.Create(ctx, inv))
 
 	s.Require().NoError(pg.CreateTemplate())
 }
@@ -76,80 +79,84 @@ func (s *MessageEquipmentInvocationRelationsSuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgmessage.NewPostgresMessageEquipmentInvocationRepository(gdb)
-	s.userRepo = pguser.NewPostgresUserRepository(gdb)
+	s.repo = pgmessage.NewPostgresMessageEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.userRepo = pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
 }
 
 // --- Sender (belongs to) ---
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestSender_AutoCreate() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().Error(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().Error(s.repo.Create(ctx, msg))
 
-	_, err := s.userRepo.Get(sender.ID)
+	_, err := s.userRepo.Get(ctx, sender.ID)
 	s.Error(err)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestSender_AutoCreateOnUpdate() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	sender2 := newUser()
 	sender2.FullName = "Wawa"
 	msg.SenderID = sender2.ID
 	msg.Sender = sender2
 	// FK ошибка
-	s.Require().Error(s.repo.Update(msg))
+	s.Require().Error(s.repo.Update(ctx, msg))
 
-	_, err := s.userRepo.Get(sender2.ID)
+	_, err := s.userRepo.Get(ctx, sender2.ID)
 	s.Error(err)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestSender_Preload() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	// без preload
-	raw, _ := s.repo.Get(msg.ID)
+	raw, _ := s.repo.Get(ctx, msg.ID)
 	s.Nil(raw.Sender)
 
 	// с preload
-	with, _ := s.repo.Get(msg.ID, domain.MessageEquipmentInvocationWithSender())
+	with, _ := s.repo.Get(ctx, msg.ID, domain.MessageEquipmentInvocationWithSender())
 	s.NotNil(with.Sender)
 	s.Equal(sender.ID, with.Sender.ID)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestSender_NoUpdateThroughMessage() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	// preload
-	with, _ := s.repo.Get(msg.ID, domain.MessageEquipmentInvocationWithSender())
+	with, _ := s.repo.Get(ctx, msg.ID, domain.MessageEquipmentInvocationWithSender())
 
 	with.Sender.FullName = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.userRepo.Get(sender.ID)
+	got, err := s.userRepo.Get(ctx, sender.ID)
 	s.Require().NoError(err)
 	s.NotEqual("HACKED", got.FullName)
 }
@@ -157,73 +164,77 @@ func (s *MessageEquipmentInvocationRelationsSuite) TestSender_NoUpdateThroughMes
 // --- Recipient (belongs to) ---
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestRecipient_AutoCreate() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().Error(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().Error(s.repo.Create(ctx, msg))
 
-	_, err := s.userRepo.Get(recipient.ID)
+	_, err := s.userRepo.Get(ctx, recipient.ID)
 	s.Error(err)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestRecipient_AutoCreateOnUpdate() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	recipient2 := newUser()
 	recipient2.FullName = "Wawa"
 	msg.RecipientID = recipient2.ID
 	msg.Recipient = recipient2
 	// FK ошибка
-	s.Require().Error(s.repo.Update(msg))
+	s.Require().Error(s.repo.Update(ctx, msg))
 
-	_, err := s.userRepo.Get(recipient2.ID)
+	_, err := s.userRepo.Get(ctx, recipient2.ID)
 	s.Error(err)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestRecipient_Preload() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	// без preload
-	raw, _ := s.repo.Get(msg.ID)
+	raw, _ := s.repo.Get(ctx, msg.ID)
 	s.Nil(raw.Recipient)
 
 	// с preload
-	with, _ := s.repo.Get(msg.ID, domain.MessageEquipmentInvocationWithRecipient())
+	with, _ := s.repo.Get(ctx, msg.ID, domain.MessageEquipmentInvocationWithRecipient())
 	s.NotNil(with.Recipient)
 	s.Equal(recipient.ID, with.Recipient.ID)
 }
 
 func (s *MessageEquipmentInvocationRelationsSuite) TestRecipient_NoUpdateThroughMessage() {
+	ctx := context.Background()
 	sender := newUser()
 	recipient := newUser()
 	msg := newMessageEquipmentInvocation(s.invID, sender.ID, recipient.ID)
 
-	s.Require().NoError(s.userRepo.Create(sender))
-	s.Require().NoError(s.userRepo.Create(recipient))
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.userRepo.Create(ctx, sender))
+	s.Require().NoError(s.userRepo.Create(ctx, recipient))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
 	// preload
-	with, _ := s.repo.Get(msg.ID, domain.MessageEquipmentInvocationWithRecipient())
+	with, _ := s.repo.Get(ctx, msg.ID, domain.MessageEquipmentInvocationWithRecipient())
 
 	with.Recipient.FullName = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.userRepo.Get(recipient.ID)
+	got, err := s.userRepo.Get(ctx, recipient.ID)
 	s.Require().NoError(err)
 	s.NotEqual("HACKED", got.FullName)
 }

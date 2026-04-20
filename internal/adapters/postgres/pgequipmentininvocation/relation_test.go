@@ -3,6 +3,7 @@
 package pgequipmentininvocation_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,6 +19,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type EquipmentInInvocationRelationsSuite struct {
@@ -44,16 +46,17 @@ func (s *EquipmentInInvocationRelationsSuite) SetupSuite() {
 		Conn: db,
 	}), &gorm.Config{})
 
-	userRepo := pguser.NewPostgresUserRepository(gdb)
-	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gdb)
+	ctx := context.Background()
+	userRepo := pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
+	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
 
 	user := newUser()
 	dept := newDept()
 	s.UserID = user.ID
 	s.DeptID = dept.ID
 
-	s.Require().NoError(userRepo.Create(user))
-	s.Require().NoError(deptRepo.Create(dept))
+	s.Require().NoError(userRepo.Create(ctx, user))
+	s.Require().NoError(deptRepo.Create(ctx, dept))
 
 	s.Require().NoError(pg.CreateTemplate())
 }
@@ -73,79 +76,83 @@ func (s *EquipmentInInvocationRelationsSuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgequipmentininvocation.NewPostgresEquipmentInInvocationRepository(gdb)
-	s.invRepo = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
-	s.eqRepo = pgequipment.NewPostgresEquipmentRepository(gdb)
+	s.repo = pgequipmentininvocation.NewPostgresEquipmentInInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.invRepo = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.eqRepo = pgequipment.NewPostgresEquipmentRepository(gormtx.NewDBGetter(gdb))
 }
 
 // --- Invocation (belongs to) ---
 
 func (s *EquipmentInInvocationRelationsSuite) TestInvocation_AutoCreate() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	// FK ошибка
-	s.Require().Error(s.repo.Create(eii))
-	_, err := s.invRepo.Get(inv.ID)
+	s.Require().Error(s.repo.Create(ctx, eii))
+	_, err := s.invRepo.Get(ctx, inv.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestInvocation_AutoCreateOnUpdate() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	inv2 := newInvocation(s.DeptID, s.UserID)
 	eii.InvocationID = inv2.ID
 	eii.Invocation = inv2
 	// FK ошибка
-	s.Require().Error(s.repo.Update(eii))
+	s.Require().Error(s.repo.Update(ctx, eii))
 
-	_, err := s.invRepo.Get(inv2.ID)
+	_, err := s.invRepo.Get(ctx, inv2.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestInvocation_Preload() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
-	s.Require().NoError(s.eqRepo.Create(eq))
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
 	// без preload
-	raw, _ := s.repo.Get(inv.ID, eq.ID)
+	raw, _ := s.repo.Get(ctx, inv.ID, eq.ID)
 	s.Nil(raw.Invocation)
 
 	// с preload
-	with, _ := s.repo.Get(inv.ID, eq.ID, domain.WithInvocation())
+	with, _ := s.repo.Get(ctx, inv.ID, eq.ID, domain.WithInvocation())
 	s.NotNil(with.Invocation)
 	s.Equal(inv.ID, with.Invocation.ID)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestInvocation_NoUpdateThroughEquipmentInInvocation() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
-	s.Require().NoError(s.eqRepo.Create(eq))
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
 	// preload
-	with, _ := s.repo.Get(inv.ID, eq.ID, domain.WithInvocation())
+	with, _ := s.repo.Get(ctx, inv.ID, eq.ID, domain.WithInvocation())
 
 	with.Invocation.EventName = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.invRepo.Get(inv.ID)
+	got, err := s.invRepo.Get(ctx, inv.ID)
 	s.Require().NoError(err)
 	s.NotEqual("HACKED", got.EventName)
 }
@@ -153,71 +160,75 @@ func (s *EquipmentInInvocationRelationsSuite) TestInvocation_NoUpdateThroughEqui
 // --- Equipment (belongs to) ---
 
 func (s *EquipmentInInvocationRelationsSuite) TestEquipment_AutoCreate() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
 
 	// FK ошибка
-	s.Require().Error(s.repo.Create(eii))
-	_, err := s.eqRepo.Get(eq.ID)
+	s.Require().Error(s.repo.Create(ctx, eii))
+	_, err := s.eqRepo.Get(ctx, eq.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestEquipment_AutoCreateOnUpdate() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
 
 	eq2 := newEquipment()
 	eii.EquipmentID = eq2.ID
 	eii.Equipment = eq2
 	// FK ошибка
-	s.Require().Error(s.repo.Update(eii))
+	s.Require().Error(s.repo.Update(ctx, eii))
 
-	_, err := s.eqRepo.Get(eq2.ID)
+	_, err := s.eqRepo.Get(ctx, eq2.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestEquipment_Preload() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
-	s.Require().NoError(s.eqRepo.Create(eq))
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
 	// без preload
-	raw, _ := s.repo.Get(inv.ID, eq.ID)
+	raw, _ := s.repo.Get(ctx, inv.ID, eq.ID)
 	s.Nil(raw.Equipment)
 
 	// с preload
-	with, _ := s.repo.Get(inv.ID, eq.ID, domain.WithEquipment())
+	with, _ := s.repo.Get(ctx, inv.ID, eq.ID, domain.WithEquipment())
 	s.NotNil(with.Equipment)
 	s.Equal(eq.ID, with.Equipment.ID)
 }
 
 func (s *EquipmentInInvocationRelationsSuite) TestEquipment_NoUpdateThroughEquipmentInInvocation() {
+	ctx := context.Background()
 	inv := newInvocation(s.DeptID, s.UserID)
 	eq := newEquipment()
 	eii := newEqInInv(inv.ID, eq.ID)
 
-	s.Require().NoError(s.invRepo.Create(inv))
-	s.Require().NoError(s.eqRepo.Create(eq))
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.invRepo.Create(ctx, inv))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
 	// preload
-	with, _ := s.repo.Get(inv.ID, eq.ID, domain.WithEquipment())
+	with, _ := s.repo.Get(ctx, inv.ID, eq.ID, domain.WithEquipment())
 
 	with.Equipment.Name = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.eqRepo.Get(eq.ID)
+	got, err := s.eqRepo.Get(ctx, eq.ID)
 	s.Require().NoError(err)
 	s.NotEqual("HACKED", got.Name)
 }

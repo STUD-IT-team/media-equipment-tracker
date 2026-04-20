@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -68,10 +70,10 @@ func DepartmentWithEquipmentInvocations() DepartmentOption {
 }
 
 type DepartmentRepository interface {
-	Get(id uuid.UUID, with ...DepartmentOption) (*Department, error)
-	List(with ...DepartmentOption) ([]*Department, error)
-	Reload(dep *Department, with ...DepartmentOption) error
-	Create(department *Department) error
-	Update(department *Department) error
-	Delete(id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, with ...DepartmentOption) (*Department, error)
+	List(ctx context.Context, with ...DepartmentOption) ([]*Department, error)
+	Reload(ctx context.Context, dep *Department, with ...DepartmentOption) error
+	Create(ctx context.Context, department *Department) error
+	Update(ctx context.Context, department *Department) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

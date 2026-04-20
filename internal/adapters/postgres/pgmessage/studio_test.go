@@ -3,6 +3,7 @@
 package pgmessage_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type MessageStudioInvocationRepositorySuite struct {
@@ -45,9 +47,10 @@ func (s *MessageStudioInvocationRepositorySuite) SetupSuite() {
 
 	s.Require().NoError(err)
 
-	userRepo := pguser.NewPostgresUserRepository(gdb)
-	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gdb)
-	invRepo := pgstudioinvocation.NewPostgresStudioInvocationRepository(gdb)
+	ctx := context.Background()
+	userRepo := pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
+	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
+	invRepo := pgstudioinvocation.NewPostgresStudioInvocationRepository(gormtx.NewDBGetter(gdb))
 
 	sender := newUser()
 	recipient := newUser()
@@ -58,10 +61,10 @@ func (s *MessageStudioInvocationRepositorySuite) SetupSuite() {
 	s.recipientID = recipient.ID
 	s.invID = inv.ID
 
-	s.Require().NoError(userRepo.Create(sender))
-	s.Require().NoError(userRepo.Create(recipient))
-	s.Require().NoError(deptRepo.Create(dept))
-	s.Require().NoError(invRepo.Create(inv))
+	s.Require().NoError(userRepo.Create(ctx, sender))
+	s.Require().NoError(userRepo.Create(ctx, recipient))
+	s.Require().NoError(deptRepo.Create(ctx, dept))
+	s.Require().NoError(invRepo.Create(ctx, inv))
 
 	s.Require().NoError(pg.CreateTemplate())
 }
@@ -81,54 +84,59 @@ func (s *MessageStudioInvocationRepositorySuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgmessage.NewPostgresMessageStudioInvocationRepository(gdb)
+	s.repo = pgmessage.NewPostgresMessageStudioInvocationRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *MessageStudioInvocationRepositorySuite) TestCreate_Get() {
+	ctx := context.Background()
 	msg := newMessageStudioInvocation(s.invID, s.senderID, s.recipientID)
 
-	s.Require().NoError(s.repo.Create(msg))
+	s.Require().NoError(s.repo.Create(ctx, msg))
 
-	got, err := s.repo.Get(msg.ID)
+	got, err := s.repo.Get(ctx, msg.ID)
 	s.NoError(err)
 	s.Equal(msg.Content, got.Content)
 }
 
 func (s *MessageStudioInvocationRepositorySuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New())
 	s.Error(err)
 }
 
 func (s *MessageStudioInvocationRepositorySuite) TestGetInvocation() {
+	ctx := context.Background()
 	msg1 := newMessageStudioInvocation(s.invID, s.senderID, s.recipientID)
 	msg2 := newMessageStudioInvocation(s.invID, s.senderID, s.recipientID)
 
-	s.Require().NoError(s.repo.Create(msg1))
-	s.Require().NoError(s.repo.Create(msg2))
+	s.Require().NoError(s.repo.Create(ctx, msg1))
+	s.Require().NoError(s.repo.Create(ctx, msg2))
 
-	list, err := s.repo.GetInvocation(s.invID)
+	list, err := s.repo.GetInvocation(ctx, s.invID)
 	s.NoError(err)
 	s.Len(list, 2)
 }
 
 func (s *MessageStudioInvocationRepositorySuite) TestUpdate() {
+	ctx := context.Background()
 	msg := newMessageStudioInvocation(s.invID, s.senderID, s.recipientID)
-	s.NoError(s.repo.Create(msg))
+	s.NoError(s.repo.Create(ctx, msg))
 
 	msg.Content = "updated"
-	s.NoError(s.repo.Update(msg))
+	s.NoError(s.repo.Update(ctx, msg))
 
-	got, _ := s.repo.Get(msg.ID)
+	got, _ := s.repo.Get(ctx, msg.ID)
 	s.Equal("updated", got.Content)
 }
 
 func (s *MessageStudioInvocationRepositorySuite) TestDelete() {
+	ctx := context.Background()
 	msg := newMessageStudioInvocation(s.invID, s.senderID, s.recipientID)
-	s.NoError(s.repo.Create(msg))
+	s.NoError(s.repo.Create(ctx, msg))
 
-	s.NoError(s.repo.Delete(msg.ID))
+	s.NoError(s.repo.Delete(ctx, msg.ID))
 
-	_, err := s.repo.Get(msg.ID)
+	_, err := s.repo.Get(ctx, msg.ID)
 	s.Error(err)
 }
 

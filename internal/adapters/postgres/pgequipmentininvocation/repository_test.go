@@ -3,6 +3,7 @@
 package pgequipmentininvocation_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,6 +19,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type EquipmentInInvocationRepositorySuite struct {
@@ -44,10 +46,10 @@ func (s *EquipmentInInvocationRepositorySuite) SetupSuite() {
 		Conn: db,
 	}), &gorm.Config{})
 
-	userRepo := pguser.NewPostgresUserRepository(gdb)
-	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gdb)
-	eqRepo := pgequipment.NewPostgresEquipmentRepository(gdb)
-	invRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
+	userRepo := pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
+	deptRepo := pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
+	eqRepo := pgequipment.NewPostgresEquipmentRepository(gormtx.NewDBGetter(gdb))
+	invRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
 
 	user := newUser()
 	dept := newDept()
@@ -59,10 +61,10 @@ func (s *EquipmentInInvocationRepositorySuite) SetupSuite() {
 	s.eqID = eq.ID
 	s.invID = inv.ID
 
-	s.Require().NoError(userRepo.Create(user))
-	s.Require().NoError(deptRepo.Create(dept))
-	s.Require().NoError(eqRepo.Create(eq))
-	s.Require().NoError(invRepo.Create(inv))
+	s.Require().NoError(userRepo.Create(context.Background(), user))
+	s.Require().NoError(deptRepo.Create(context.Background(), dept))
+	s.Require().NoError(eqRepo.Create(context.Background(), eq))
+	s.Require().NoError(invRepo.Create(context.Background(), inv))
 
 	s.Require().NoError(pg.CreateTemplate())
 }
@@ -82,42 +84,46 @@ func (s *EquipmentInInvocationRepositorySuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgequipmentininvocation.NewPostgresEquipmentInInvocationRepository(gdb)
+	s.repo = pgequipmentininvocation.NewPostgresEquipmentInInvocationRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *EquipmentInInvocationRepositorySuite) TestCreate_Get() {
+	ctx := context.Background()
 	eii := newEqInInv(s.invID, s.eqID)
 
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
-	got, err := s.repo.Get(s.invID, s.eqID)
+	got, err := s.repo.Get(ctx, s.invID, s.eqID)
 	s.NoError(err)
 	s.Equal(eii.Status, got.Status)
 }
 
 func (s *EquipmentInInvocationRepositorySuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New(), uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New(), uuid.New())
 	s.Error(err)
 }
 
 func (s *EquipmentInInvocationRepositorySuite) TestUpdate() {
+	ctx := context.Background()
 	eii := newEqInInv(s.invID, s.eqID)
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
 	eii.Status = domain.EquipmentIssued
-	s.NoError(s.repo.Update(eii))
+	s.NoError(s.repo.Update(ctx, eii))
 
-	got, _ := s.repo.Get(s.invID, s.eqID)
+	got, _ := s.repo.Get(ctx, s.invID, s.eqID)
 	s.Equal(domain.EquipmentIssued, got.Status)
 }
 
 func (s *EquipmentInInvocationRepositorySuite) TestDelete() {
+	ctx := context.Background()
 	eii := newEqInInv(s.invID, s.eqID)
-	s.Require().NoError(s.repo.Create(eii))
+	s.Require().NoError(s.repo.Create(ctx, eii))
 
-	s.NoError(s.repo.Delete(s.invID, s.eqID))
+	s.NoError(s.repo.Delete(ctx, s.invID, s.eqID))
 
-	_, err := s.repo.Get(s.invID, s.eqID)
+	_, err := s.repo.Get(ctx, s.invID, s.eqID)
 	s.Error(err)
 }
 

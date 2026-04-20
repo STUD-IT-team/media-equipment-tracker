@@ -61,8 +61,8 @@ func NewAuthUser(
 	return server, nil
 }
 
-func (s *authUserService) LoginUser(_ context.Context, lur LoginUserRequest) (string, error) {
-	user, err := s.userRep.GetByEmail(lur.Email)
+func (s *authUserService) LoginUser(ctx context.Context, lur LoginUserRequest) (string, error) {
+	user, err := s.userRep.GetByEmail(ctx, lur.Email)
 	if err != nil {
 		return "", err
 	}
@@ -89,12 +89,12 @@ func (s *authUserService) LoginUser(_ context.Context, lur LoginUserRequest) (st
 	return accessToken, nil
 }
 
-func (s *authUserService) RegisterUser(_ context.Context, rur RegisterUserRequest) error {
+func (s *authUserService) RegisterUser(ctx context.Context, rur RegisterUserRequest) error {
 	hashedPassword, err := s.hasher.HashPassword(rur.Password)
 	if err != nil {
 		return err
 	}
-	return s.userRep.Create(&domain.User{
+	return s.userRep.Create(ctx, &domain.User{
 		ID:           uuid.New(),
 		FullName:     rur.FullName,
 		Email:        rur.Email,

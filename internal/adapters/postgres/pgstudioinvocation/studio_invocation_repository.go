@@ -1,8 +1,10 @@
 package pgstudioinvocation
 
 import (
+	"context"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -10,32 +12,33 @@ import (
 )
 
 type PostgresStudioInvocationRepository struct {
-	db *gorm.DB
+	db *gormtx.DBGetter
 }
 
-func NewPostgresStudioInvocationRepository(db *gorm.DB) *PostgresStudioInvocationRepository {
+func NewPostgresStudioInvocationRepository(db *gormtx.DBGetter) *PostgresStudioInvocationRepository {
 	return &PostgresStudioInvocationRepository{db: db}
 }
 
 var _ domain.StudioInvocationRepository = (*PostgresStudioInvocationRepository)(nil)
 
-func (r *PostgresStudioInvocationRepository) applyOptions(opts []domain.StudioInvocationOption) *gorm.DB {
+func (r *PostgresStudioInvocationRepository) applyOptions(ctx context.Context, opts []domain.StudioInvocationOption) *gorm.DB {
 	options := &domain.StudioInvocationOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-	query := r.db
+	db, _ := r.db.GetDB(ctx)
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 	return query
 }
 
-func (r *PostgresStudioInvocationRepository) Get(id uuid.UUID, with ...domain.StudioInvocationOption) (*domain.StudioInvocation, error) {
+func (r *PostgresStudioInvocationRepository) Get(ctx context.Context, id uuid.UUID, with ...domain.StudioInvocationOption) (*domain.StudioInvocation, error) {
 	var inv domain.StudioInvocation
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("StudioInvocation", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -43,39 +46,42 @@ func (r *PostgresStudioInvocationRepository) Get(id uuid.UUID, with ...domain.St
 	return &inv, nil
 }
 
-func (r *PostgresStudioInvocationRepository) List(with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
+func (r *PostgresStudioInvocationRepository) List(ctx context.Context, with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
 	var invocations []*domain.StudioInvocation
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.Find(&invocations).Error; err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
 	return invocations, nil
 }
 
-func (r *PostgresStudioInvocationRepository) Reload(studioInvocation *domain.StudioInvocation, with ...domain.StudioInvocationOption) error {
-	query := r.applyOptions(with)
+func (r *PostgresStudioInvocationRepository) Reload(ctx context.Context, studioInvocation *domain.StudioInvocation, with ...domain.StudioInvocationOption) error {
+	query := r.applyOptions(ctx, with)
 	if err := query.First(studioInvocation, "id = ?", studioInvocation.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
 	return nil
 }
 
-func (r *PostgresStudioInvocationRepository) Create(studioInvocation *domain.StudioInvocation) error {
-	if err := r.db.Omit(clause.Associations).Create(studioInvocation).Error; err != nil {
+func (r *PostgresStudioInvocationRepository) Create(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Omit(clause.Associations).Create(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *PostgresStudioInvocationRepository) Update(studioInvocation *domain.StudioInvocation) error {
-	if err := r.db.Omit(clause.Associations).Save(studioInvocation).Error; err != nil {
+func (r *PostgresStudioInvocationRepository) Update(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Omit(clause.Associations).Save(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *PostgresStudioInvocationRepository) Delete(id uuid.UUID) error {
-	if err := r.db.Delete(&domain.StudioInvocation{}, "id = ?", id).Error; err != nil {
+func (r *PostgresStudioInvocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Delete(&domain.StudioInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil

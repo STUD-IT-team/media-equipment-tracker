@@ -1,40 +1,43 @@
 package pgequipmentinvocation
 
 import (
+	"context"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type PostgresEquipmentInvocationRepository struct {
-	db *gorm.DB
+	db *gormtx.DBGetter
 }
 
-func NewPostgresEquipmentInvocationRepository(db *gorm.DB) *PostgresEquipmentInvocationRepository {
+func NewPostgresEquipmentInvocationRepository(db *gormtx.DBGetter) *PostgresEquipmentInvocationRepository {
 	return &PostgresEquipmentInvocationRepository{db: db}
 }
 
 var _ domain.EquipmentInvocationRepository = (*PostgresEquipmentInvocationRepository)(nil)
 
-func (r *PostgresEquipmentInvocationRepository) applyOptions(opts []domain.EquipmentInvocationOption) *gorm.DB {
+func (r *PostgresEquipmentInvocationRepository) applyOptions(ctx context.Context, opts []domain.EquipmentInvocationOption) *gorm.DB {
 	options := &domain.EquipmentInvocationOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-	query := r.db
+	db, _ := r.db.GetDB(ctx)
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 	return query
 }
 
-func (r *PostgresEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain.EquipmentInvocationOption) (*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) Get(ctx context.Context, id uuid.UUID, with ...domain.EquipmentInvocationOption) (*domain.EquipmentInvocation, error) {
 	var inv domain.EquipmentInvocation
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("EquipmentInvocation", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -42,17 +45,17 @@ func (r *PostgresEquipmentInvocationRepository) Get(id uuid.UUID, with ...domain
 	return &inv, nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) List(with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) List(ctx context.Context, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	var invocations []*domain.EquipmentInvocation
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.Find(&invocations).Error; err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
 	return invocations, nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) Reload(equipmentInvocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
-	query := r.applyOptions(with)
+func (r *PostgresEquipmentInvocationRepository) Reload(ctx context.Context, equipmentInvocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
+	query := r.applyOptions(ctx, with)
 	if err := query.First(equipmentInvocation, "id = ?", equipmentInvocation.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
@@ -64,35 +67,41 @@ func (r *PostgresEquipmentInvocationRepository) upsertOmitFields() []string {
 	return []string{"Equipment.Equipment", "Equipment.Invocation", "Admin", "User", "Organization", "Department"}
 }
 
-func (r *PostgresEquipmentInvocationRepository) Create(equipmentInvocation *domain.EquipmentInvocation) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
-	if err := tx.Omit(r.upsertOmitFields()...).Create(equipmentInvocation).Error; err != nil {
+func (r *PostgresEquipmentInvocationRepository) Create(ctx context.Context, equipmentInvocation *domain.EquipmentInvocation) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Omit(r.upsertOmitFields()...).Create(equipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 
-	return tx.Commit().Error
+	return nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) Update(equipmentInvocation *domain.EquipmentInvocation) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
+func (r *PostgresEquipmentInvocationRepository) Update(ctx context.Context, equipmentInvocation *domain.EquipmentInvocation) error {
+	db, _ := r.db.GetDB(ctx)
 
-	if err := tx.Omit(r.upsertOmitFields()...).Save(equipmentInvocation).Error; err != nil {
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit(r.upsertOmitFields()...).Save(equipmentInvocation).Error; err != nil {
+			return errs.NewRepositoryError("update", err)
+		}
+
+		if equipmentInvocation.Equipment != nil {
+			if err := tx.Model(equipmentInvocation).Association("Equipment").Replace(equipmentInvocation.Equipment); err != nil {
+				return errs.NewRepositoryError("update", err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 
-	if equipmentInvocation.Equipment != nil {
-		if err := tx.Model(equipmentInvocation).Association("Equipment").Replace(equipmentInvocation.Equipment); err != nil {
-			return errs.NewRepositoryError("update", err)
-		}
-	}
-
-	return tx.Commit().Error
+	return nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) Delete(id uuid.UUID) error {
-	if err := r.db.Delete(&domain.EquipmentInvocation{}, "id = ?", id).Error; err != nil {
+func (r *PostgresEquipmentInvocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Delete(&domain.EquipmentInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil

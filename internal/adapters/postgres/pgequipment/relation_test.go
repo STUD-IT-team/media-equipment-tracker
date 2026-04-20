@@ -3,6 +3,7 @@
 package pgequipment_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -16,6 +17,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type EquipmentRelationsSuite struct {
@@ -53,56 +55,59 @@ func (s *EquipmentRelationsSuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.eqRepo = pgequipment.NewPostgresEquipmentRepository(gdb)
-	s.deptRepo = pgdepartment.NewPostgresDepartmentRepository(gdb)
-	s.invocationRepository = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
-	s.userRepo = pguser.NewPostgresUserRepository(gdb)
+	s.eqRepo = pgequipment.NewPostgresEquipmentRepository(gormtx.NewDBGetter(gdb))
+	s.deptRepo = pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
+	s.invocationRepository = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.userRepo = pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
 }
 
 // --- Departments (many2many) ---
 
 func (s *EquipmentRelationsSuite) TestDepartments_Preload() {
+	ctx := context.Background()
 	eq := newEquipment()
 	dept := newDepartment()
 
-	s.Require().NoError(s.deptRepo.Create(dept))
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.deptRepo.Create(ctx, dept))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	dept.Equipment = []*domain.Equipment{eq}
-	s.Require().NoError(s.deptRepo.Update(dept))
+	s.Require().NoError(s.deptRepo.Update(ctx, dept))
 
 	// без preload
-	raw, _ := s.eqRepo.Get(eq.ID)
+	raw, _ := s.eqRepo.Get(ctx, eq.ID)
 	s.Empty(raw.Departments)
 
 	// с preload
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithDepartments())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithDepartments())
 	s.Len(with.Departments, 1)
 	s.Equal(dept.ID, with.Departments[0].ID)
 }
 
 func (s *EquipmentRelationsSuite) TestDepartments_PreloadAfterDelete() {
+	ctx := context.Background()
 	eq := newEquipment()
 	dept := newDepartment()
 
-	s.Require().NoError(s.deptRepo.Create(dept))
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.deptRepo.Create(ctx, dept))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	dept.Equipment = []*domain.Equipment{eq}
-	s.Require().NoError(s.deptRepo.Update(dept))
+	s.Require().NoError(s.deptRepo.Update(ctx, dept))
 	dept.Equipment = []*domain.Equipment{}
-	s.Require().NoError(s.deptRepo.Update(dept))
+	s.Require().NoError(s.deptRepo.Update(ctx, dept))
 
 	// без preload
-	raw, _ := s.eqRepo.Get(eq.ID)
+	raw, _ := s.eqRepo.Get(ctx, eq.ID)
 	s.Empty(raw.Departments)
 
 	// с preload
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithDepartments())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithDepartments())
 	s.Empty(with.Departments)
 }
 
 func (s *EquipmentRelationsSuite) TestDepartments_NoAutoCreate() {
+	ctx := context.Background()
 	eq := newEquipment()
 	dept := newDepartment()
 
@@ -110,23 +115,24 @@ func (s *EquipmentRelationsSuite) TestDepartments_NoAutoCreate() {
 
 	// департамент не должен создаться автоматически\
 	// так как модель не управляет их связью
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
-	_, err := s.deptRepo.Get(dept.ID)
+	_, err := s.deptRepo.Get(ctx, dept.ID)
 	s.Error(err)
 }
 
 // --- Invocations (many2many) ---
 
 func (s *EquipmentRelationsSuite) TestInvocations_Preload() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	invocation.Equipment = []*domain.EquipmentInInvocation{
 		{
@@ -138,26 +144,27 @@ func (s *EquipmentRelationsSuite) TestInvocations_Preload() {
 		},
 	}
 
-	s.Require().NoError(s.invocationRepository.Create(invocation))
+	s.Require().NoError(s.invocationRepository.Create(ctx, invocation))
 
 	// без preload
-	raw, _ := s.eqRepo.Get(eq.ID)
+	raw, _ := s.eqRepo.Get(ctx, eq.ID)
 	s.Empty(raw.Invocations)
 
 	// с preload
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithEquipmentInInvocations())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithEquipmentInInvocations())
 	s.Len(with.Invocations, 1)
 	s.Equal(invocation.ID, with.Invocations[0].InvocationID)
 }
 
 func (s *EquipmentRelationsSuite) TestInvocations_NoAutoCreate() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
 
 	eq.Invocations = []*domain.EquipmentInInvocation{
 		{
@@ -171,63 +178,66 @@ func (s *EquipmentRelationsSuite) TestInvocations_NoAutoCreate() {
 
 	// invocation не должен создаться автоматически
 	// так как модель не управляет их связью
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
-	_, err := s.invocationRepository.Get(invocation.ID)
+	_, err := s.invocationRepository.Get(ctx, invocation.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentRelationsSuite) TestCurrentInvocation_Preload() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
-	s.Require().NoError(s.invocationRepository.Create(invocation))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
+	s.Require().NoError(s.invocationRepository.Create(ctx, invocation))
 
 	eq.CurrentInvocationID = &invocation.ID
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	// без preload
-	raw, _ := s.eqRepo.Get(eq.ID)
+	raw, _ := s.eqRepo.Get(ctx, eq.ID)
 	s.Nil(raw.CurrentInvocation)
 
 	// с preload
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithCurrentInvocation())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithCurrentInvocation())
 	s.NotNil(with.CurrentInvocation)
 	s.Equal(invocation.ID, with.CurrentInvocation.ID)
 }
 
 func (s *EquipmentRelationsSuite) TestCurrentInvocation_PreloadAfterUnset() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
-	s.Require().NoError(s.invocationRepository.Create(invocation))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
+	s.Require().NoError(s.invocationRepository.Create(ctx, invocation))
 
 	eq.CurrentInvocationID = &invocation.ID
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	eq.CurrentInvocationID = nil
-	s.Require().NoError(s.eqRepo.Update(eq))
+	s.Require().NoError(s.eqRepo.Update(ctx, eq))
 
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithCurrentInvocation())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithCurrentInvocation())
 	s.Nil(with.CurrentInvocation)
 }
 
 func (s *EquipmentRelationsSuite) TestCurrentInvocation_NoAutoCreate() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
 
 	eq.CurrentInvocationID = &invocation.ID
 	eq.CurrentInvocation = invocation
@@ -235,33 +245,34 @@ func (s *EquipmentRelationsSuite) TestCurrentInvocation_NoAutoCreate() {
 	// invocation не должен создаться автоматически
 	// так как модель не управляет их связью
 	// Но ошибка из-за FK CurrentInvocationID
-	s.Require().Error(s.eqRepo.Create(eq))
+	s.Require().Error(s.eqRepo.Create(ctx, eq))
 
-	_, err := s.invocationRepository.Get(invocation.ID)
+	_, err := s.invocationRepository.Get(ctx, invocation.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentRelationsSuite) TestCurrentInvocation_NoUpdateThroughEquipment() {
+	ctx := context.Background()
 	eq := newEquipment()
 	user := newUser()
 	dep := newDepartment()
 	invocation := newInvocation(dep.ID, user.ID)
 
-	s.Require().NoError(s.deptRepo.Create(dep))
-	s.Require().NoError(s.userRepo.Create(user))
-	s.Require().NoError(s.invocationRepository.Create(invocation))
+	s.Require().NoError(s.deptRepo.Create(ctx, dep))
+	s.Require().NoError(s.userRepo.Create(ctx, user))
+	s.Require().NoError(s.invocationRepository.Create(ctx, invocation))
 
 	eq.CurrentInvocationID = &invocation.ID
-	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(ctx, eq))
 
 	// preload
-	with, _ := s.eqRepo.Get(eq.ID, domain.EquipmentWithCurrentInvocation())
+	with, _ := s.eqRepo.Get(ctx, eq.ID, domain.EquipmentWithCurrentInvocation())
 
 	with.CurrentInvocation.EventName = "HACKED"
 
-	s.Require().NoError(s.eqRepo.Update(with))
+	s.Require().NoError(s.eqRepo.Update(ctx, with))
 
-	got, err := s.invocationRepository.Get(invocation.ID)
+	got, err := s.invocationRepository.Get(ctx, invocation.ID)
 	s.Require().NoError(err)
 	s.NotEqual("HACKED", got.EventName)
 }

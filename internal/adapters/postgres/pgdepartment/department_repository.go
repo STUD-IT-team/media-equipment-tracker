@@ -1,40 +1,43 @@
 package pgdepartment
 
 import (
+	"context"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type PostgresDepartmentRepository struct {
-	db *gorm.DB
+	db *gormtx.DBGetter
 }
 
-func NewPostgresDepartmentRepository(db *gorm.DB) *PostgresDepartmentRepository {
+func NewPostgresDepartmentRepository(db *gormtx.DBGetter) *PostgresDepartmentRepository {
 	return &PostgresDepartmentRepository{db: db}
 }
 
 var _ domain.DepartmentRepository = (*PostgresDepartmentRepository)(nil)
 
-func (r *PostgresDepartmentRepository) applyOptions(opts []domain.DepartmentOption) *gorm.DB {
+func (r *PostgresDepartmentRepository) applyOptions(ctx context.Context, opts []domain.DepartmentOption) *gorm.DB {
 	options := &domain.DepartmentOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-	query := r.db
+	db, _ := r.db.GetDB(ctx)
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 	return query
 }
 
-func (r *PostgresDepartmentRepository) Get(id uuid.UUID, with ...domain.DepartmentOption) (*domain.Department, error) {
+func (r *PostgresDepartmentRepository) Get(ctx context.Context, id uuid.UUID, with ...domain.DepartmentOption) (*domain.Department, error) {
 	var department domain.Department
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.First(&department, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("Department", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -42,17 +45,17 @@ func (r *PostgresDepartmentRepository) Get(id uuid.UUID, with ...domain.Departme
 	return &department, nil
 }
 
-func (r *PostgresDepartmentRepository) List(with ...domain.DepartmentOption) ([]*domain.Department, error) {
+func (r *PostgresDepartmentRepository) List(ctx context.Context, with ...domain.DepartmentOption) ([]*domain.Department, error) {
 	var departments []*domain.Department
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.Find(&departments).Error; err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
 	return departments, nil
 }
 
-func (r *PostgresDepartmentRepository) Reload(department *domain.Department, with ...domain.DepartmentOption) error {
-	query := r.applyOptions(with)
+func (r *PostgresDepartmentRepository) Reload(ctx context.Context, department *domain.Department, with ...domain.DepartmentOption) error {
+	query := r.applyOptions(ctx, with)
 	if err := query.First(department, "id = ?", department.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
@@ -65,35 +68,40 @@ func (r *PostgresDepartmentRepository) upsertOmitFields() []string {
 	return []string{"Equipment.*", "EquipmentInvocations", "StudioInvocations", "Users"}
 }
 
-func (r *PostgresDepartmentRepository) Create(department *domain.Department) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
-	if err := tx.Omit(r.upsertOmitFields()...).Create(department).Error; err != nil {
+func (r *PostgresDepartmentRepository) Create(ctx context.Context, department *domain.Department) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Omit(r.upsertOmitFields()...).Create(department).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 
-	return tx.Commit().Error
+	return nil
 }
 
-func (r *PostgresDepartmentRepository) Update(department *domain.Department) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
-	if err := tx.Omit(r.upsertOmitFields()...).Save(department).Error; err != nil {
-		return errs.NewRepositoryError("update", err)
-	}
+func (r *PostgresDepartmentRepository) Update(ctx context.Context, department *domain.Department) error {
+	db, _ := r.db.GetDB(ctx)
 
-	// Нужно, так как Save может только добавлять связи, но не удалять существующие в БД
-	if department.Equipment != nil {
-		if err := tx.Model(department).Association("Equipment").Replace(department.Equipment); err != nil {
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit(r.upsertOmitFields()...).Save(department).Error; err != nil {
 			return errs.NewRepositoryError("update", err)
 		}
-	}
+		// Нужно, так как Save может только добавлять связи, но не удалять существующие в БД
+		if department.Equipment != nil {
+			if err := tx.Model(department).Association("Equipment").Replace(department.Equipment); err != nil {
+				return errs.NewRepositoryError("update", err)
+			}
+		}
+		return nil
+	})
 
-	return tx.Commit().Error
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
+	return nil
 }
 
-func (r *PostgresDepartmentRepository) Delete(id uuid.UUID) error {
-	if err := r.db.Delete(&domain.Department{}, "id = ?", id).Error; err != nil {
+func (r *PostgresDepartmentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db, _ := r.db.GetDB(ctx)
+	if err := db.Delete(&domain.Department{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
