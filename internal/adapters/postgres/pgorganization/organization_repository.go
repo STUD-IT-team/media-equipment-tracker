@@ -2,6 +2,7 @@ package pgorganization
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -25,15 +26,17 @@ func (r *PostgresOrganizationRepository) Get(ctx context.Context, id uuid.UUID, 
 	for _, opt := range opts {
 		opt(options)
 	}
-
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("get", err)
+	}
 	var organization domain.Organization
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.First(&organization, "id = ?", id).Error
+	err = query.First(&organization, "id = ?", id).Error
 	if err != nil {
 		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("Organization", id)
@@ -49,15 +52,17 @@ func (r *PostgresOrganizationRepository) List(ctx context.Context, opts ...domai
 	for _, opt := range opts {
 		opt(options)
 	}
-
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("list", err)
+	}
 	var organizations []*domain.Organization
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(&organizations).Error
+	err = query.Find(&organizations).Error
 	if err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
@@ -71,13 +76,17 @@ func (r *PostgresOrganizationRepository) Reload(ctx context.Context, organizatio
 		opt(options)
 	}
 
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("reload", err)
+	}
+
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(organization, "id = ?", organization.ID).Error
+	err = query.Find(organization, "id = ?", organization.ID).Error
 	if err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
@@ -86,8 +95,11 @@ func (r *PostgresOrganizationRepository) Reload(ctx context.Context, organizatio
 }
 
 func (r *PostgresOrganizationRepository) Create(ctx context.Context, organization *domain.Organization) error {
-	db, _ := r.db.GetDB(ctx)
-	err := db.Omit(clause.Associations).Create(organization).Error
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
+	err = db.Omit(clause.Associations).Create(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -95,8 +107,11 @@ func (r *PostgresOrganizationRepository) Create(ctx context.Context, organizatio
 }
 
 func (r *PostgresOrganizationRepository) Update(ctx context.Context, organization *domain.Organization) error {
-	db, _ := r.db.GetDB(ctx)
-	err := db.Omit(clause.Associations).Save(organization).Error
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
+	err = db.Omit(clause.Associations).Save(organization).Error
 	if err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
@@ -104,8 +119,11 @@ func (r *PostgresOrganizationRepository) Update(ctx context.Context, organizatio
 }
 
 func (r *PostgresOrganizationRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
-	err := db.Delete(&domain.Organization{}, "id = ?", id).Error
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
+	err = db.Delete(&domain.Organization{}, "id = ?", id).Error
 	if err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

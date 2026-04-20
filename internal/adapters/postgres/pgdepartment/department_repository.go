@@ -2,6 +2,7 @@ package pgdepartment
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -25,7 +26,10 @@ func (r *PostgresDepartmentRepository) applyOptions(ctx context.Context, opts []
 	for _, opt := range opts {
 		opt(options)
 	}
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil
+	}
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
@@ -69,7 +73,10 @@ func (r *PostgresDepartmentRepository) upsertOmitFields() []string {
 }
 
 func (r *PostgresDepartmentRepository) Create(ctx context.Context, department *domain.Department) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
 	if err := db.Omit(r.upsertOmitFields()...).Create(department).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -78,9 +85,12 @@ func (r *PostgresDepartmentRepository) Create(ctx context.Context, department *d
 }
 
 func (r *PostgresDepartmentRepository) Update(ctx context.Context, department *domain.Department) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit(r.upsertOmitFields()...).Save(department).Error; err != nil {
 			return errs.NewRepositoryError("update", err)
 		}
@@ -100,7 +110,10 @@ func (r *PostgresDepartmentRepository) Update(ctx context.Context, department *d
 }
 
 func (r *PostgresDepartmentRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
 	if err := db.Delete(&domain.Department{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

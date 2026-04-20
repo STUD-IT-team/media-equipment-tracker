@@ -2,6 +2,7 @@ package pgequipmentininvocation
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -26,7 +27,10 @@ func (r *PostgresEquipmentInInvocationRepository) applyOptions(ctx context.Conte
 	for _, opt := range opts {
 		opt(options)
 	}
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil
+	}
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
@@ -65,7 +69,10 @@ func (r *PostgresEquipmentInInvocationRepository) GetByEquipment(ctx context.Con
 }
 
 func (r *PostgresEquipmentInInvocationRepository) Create(ctx context.Context, equipmentInInvocation *domain.EquipmentInInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
 	if err := db.Omit(clause.Associations).Create(equipmentInInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -73,7 +80,10 @@ func (r *PostgresEquipmentInInvocationRepository) Create(ctx context.Context, eq
 }
 
 func (r *PostgresEquipmentInInvocationRepository) Update(ctx context.Context, equipmentInInvocation *domain.EquipmentInInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
 	if err := db.Omit(clause.Associations).Save(equipmentInInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
@@ -81,7 +91,10 @@ func (r *PostgresEquipmentInInvocationRepository) Update(ctx context.Context, eq
 }
 
 func (r *PostgresEquipmentInInvocationRepository) Delete(ctx context.Context, invocationID, equipmentID uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
 	if err := db.Delete(&domain.EquipmentInInvocation{}, "invocation_id = ? AND equipment_id = ?", invocationID, equipmentID).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

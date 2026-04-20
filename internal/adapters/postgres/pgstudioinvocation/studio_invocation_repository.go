@@ -2,6 +2,7 @@ package pgstudioinvocation
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -26,7 +27,10 @@ func (r *PostgresStudioInvocationRepository) applyOptions(ctx context.Context, o
 	for _, opt := range opts {
 		opt(options)
 	}
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil
+	}
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
@@ -64,7 +68,10 @@ func (r *PostgresStudioInvocationRepository) Reload(ctx context.Context, studioI
 }
 
 func (r *PostgresStudioInvocationRepository) Create(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
 	if err := db.Omit(clause.Associations).Create(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -72,7 +79,10 @@ func (r *PostgresStudioInvocationRepository) Create(ctx context.Context, studioI
 }
 
 func (r *PostgresStudioInvocationRepository) Update(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
 	if err := db.Omit(clause.Associations).Save(studioInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
@@ -80,7 +90,10 @@ func (r *PostgresStudioInvocationRepository) Update(ctx context.Context, studioI
 }
 
 func (r *PostgresStudioInvocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
 	if err := db.Delete(&domain.StudioInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

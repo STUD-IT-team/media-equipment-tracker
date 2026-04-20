@@ -2,6 +2,7 @@ package pgmessage
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -26,7 +27,10 @@ func (r *PostgresMessageEquipmentInvocationRepository) applyOptions(ctx context.
 	for _, opt := range opts {
 		opt(options)
 	}
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil
+	}
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
@@ -56,7 +60,10 @@ func (r *PostgresMessageEquipmentInvocationRepository) GetInvocation(ctx context
 }
 
 func (r *PostgresMessageEquipmentInvocationRepository) Create(ctx context.Context, messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
 	if err := db.Omit(clause.Associations).Create(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -64,7 +71,10 @@ func (r *PostgresMessageEquipmentInvocationRepository) Create(ctx context.Contex
 }
 
 func (r *PostgresMessageEquipmentInvocationRepository) Update(ctx context.Context, messageEquipmentInvocation *domain.MessageEquipmentInvocation) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
 	if err := db.Omit(clause.Associations).Save(messageEquipmentInvocation).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
@@ -72,7 +82,10 @@ func (r *PostgresMessageEquipmentInvocationRepository) Update(ctx context.Contex
 }
 
 func (r *PostgresMessageEquipmentInvocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
 	if err := db.Delete(&domain.MessageEquipmentInvocation{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

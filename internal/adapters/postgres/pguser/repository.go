@@ -2,6 +2,7 @@ package pguser
 
 import (
 	"context"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -24,14 +25,17 @@ func (r *PostgresUserRepository) Get(ctx context.Context, id uuid.UUID, opts ...
 		opt(options)
 	}
 
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("get", err)
+	}
 	var user domain.User
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.First(&user, "id = ?", id).Error
+	err = query.First(&user, "id = ?", id).Error
 	if err != nil {
 		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("User", id)
@@ -47,15 +51,17 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string, o
 	for _, opt := range opts {
 		opt(options)
 	}
-
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("get by email", err)
+	}
 	var user domain.User
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.First(&user, "email = ?", email).Error
+	err = query.First(&user, "email = ?", email).Error
 	if err != nil {
 		if err.Error() == "record not found" {
 			return nil, errs.NewEntityNotFoundError("User", email)
@@ -71,15 +77,17 @@ func (r *PostgresUserRepository) List(ctx context.Context, opts ...domain.UserOp
 	for _, opt := range opts {
 		opt(options)
 	}
-
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("list", err)
+	}
 	var users []*domain.User
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(&users).Error
+	err = query.Find(&users).Error
 	if err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
@@ -93,13 +101,17 @@ func (r *PostgresUserRepository) Reload(ctx context.Context, user *domain.User, 
 		opt(options)
 	}
 
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("reload", err)
+	}
+
 	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(user, "id = ?", user.ID).Error
+	err = query.Find(user, "id = ?", user.ID).Error
 	if err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
@@ -113,7 +125,10 @@ func (r *PostgresUserRepository) upsertOmitFields() []string {
 }
 
 func (r *PostgresUserRepository) Create(ctx context.Context, user *domain.User) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
 	if err := db.Omit(r.upsertOmitFields()...).Create(user).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
@@ -122,9 +137,12 @@ func (r *PostgresUserRepository) Create(ctx context.Context, user *domain.User) 
 }
 
 func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) error {
-	db, _ := r.db.GetDB(ctx)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit(r.upsertOmitFields()...).Save(user).Error; err != nil {
 			return errs.NewRepositoryError("update", err)
 		}
@@ -151,8 +169,11 @@ func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) 
 }
 
 func (r *PostgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, _ := r.db.GetDB(ctx)
-	err := db.Delete(&domain.User{}, "id = ?", id).Error
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
+	err = db.Delete(&domain.User{}, "id = ?", id).Error
 	if err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
