@@ -57,7 +57,7 @@ func (s *AuthSuite) TestNewAuthUser_Invalid() {
 func (s *AuthSuite) TestLoginUser_Success() {
 	u := newUser(true)
 
-	s.userRep.On("GetByEmail", u.Email, mock.Anything).Return(u, nil)
+	s.userRep.On("GetByEmail", mock.Anything, u.Email, mock.Anything).Return(u, nil)
 	s.hasher.On("CheckPassword", "pass", u.HashPassword).Return(nil)
 
 	s.tokenMaker.On("CreateToken", mock.MatchedBy(func(p *domain.TokenPayload) bool {
@@ -77,7 +77,7 @@ func (s *AuthSuite) TestLoginUser_Success() {
 func (s *AuthSuite) TestLoginUser_AddFail() {
 	u := newUser(false)
 
-	s.userRep.On("GetByEmail", u.Email, mock.Anything).Return(u, nil)
+	s.userRep.On("GetByEmail", mock.Anything, u.Email, mock.Anything).Return(u, nil)
 	s.hasher.On("CheckPassword", mock.Anything, mock.Anything).Return(nil)
 	s.tokenMaker.On("CreateToken", mock.Anything).Return("token", nil)
 	s.tokenRep.On("Add", "token").Return(false)
@@ -88,7 +88,7 @@ func (s *AuthSuite) TestLoginUser_AddFail() {
 
 func (s *AuthSuite) TestRegisterUser() {
 	s.hasher.On("HashPassword", "pass").Return("hash", nil)
-	s.userRep.On("Create", mock.AnythingOfType("*domain.User")).Return(nil)
+	s.userRep.On("Create", mock.Anything, mock.AnythingOfType("*domain.User")).Return(nil)
 
 	err := s.svc.RegisterUser(context.Background(), authservice.RegisterUserRequest{
 		FullName: "test", Email: "mail", Password: "pass",
@@ -152,23 +152,27 @@ func (m *HasherMock) CheckPassword(p, h string) error {
 
 type UserRepoMock struct{ mock.Mock }
 
-func (m *UserRepoMock) GetByEmail(email string, _ ...domain.UserOption) (*domain.User, error) {
-	args := m.Called(email, mock.Anything)
+func (m *UserRepoMock) GetByEmail(ctx context.Context, email string, _ ...domain.UserOption) (*domain.User, error) {
+	args := m.Called(ctx, email, mock.Anything)
 	if v := args.Get(0); v != nil {
 		return v.(*domain.User), args.Error(1)
 	}
 	return nil, args.Error(1)
 }
-func (m *UserRepoMock) Create(u *domain.User) error {
-	return m.Called(u).Error(0)
+func (m *UserRepoMock) Create(ctx context.Context, u *domain.User) error {
+	return m.Called(ctx, u).Error(0)
 }
 
 // unused
-func (*UserRepoMock) Get(uuid.UUID, ...domain.UserOption) (*domain.User, error) { return nil, nil }
-func (*UserRepoMock) List(...domain.UserOption) ([]*domain.User, error)         { return nil, nil }
-func (*UserRepoMock) Reload(*domain.User, ...domain.UserOption) error           { return nil }
-func (*UserRepoMock) Update(*domain.User) error                                 { return nil }
-func (*UserRepoMock) Delete(uuid.UUID) error                                    { return nil }
+func (*UserRepoMock) Get(context.Context, uuid.UUID, ...domain.UserOption) (*domain.User, error) {
+	return nil, nil
+}
+func (*UserRepoMock) List(context.Context, ...domain.UserOption) ([]*domain.User, error) {
+	return nil, nil
+}
+func (*UserRepoMock) Reload(context.Context, *domain.User, ...domain.UserOption) error { return nil }
+func (*UserRepoMock) Update(context.Context, *domain.User) error                       { return nil }
+func (*UserRepoMock) Delete(context.Context, uuid.UUID) error                          { return nil }
 
 type TokenRepoMock struct{ mock.Mock }
 
