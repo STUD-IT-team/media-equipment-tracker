@@ -381,8 +381,9 @@ func (s *EquipmentInvocationRelationsSuite) TestEquipmentInInvocation_Create() {
 	// Может создаться со связью, так equipment создан
 	s.Require().NoError(s.invocationRepo.Create(invocation))
 
-	_, err := s.equipmentInInvocationRepo.Get(invocation.ID, eqInInv.EquipmentID)
+	inv, err := s.equipmentInInvocationRepo.Get(invocation.ID, eqInInv.EquipmentID)
 	s.NoError(err)
+	s.NotNil(inv)
 }
 
 func (s *EquipmentInvocationRelationsSuite) TestEquipmentInInvocation_Update() {

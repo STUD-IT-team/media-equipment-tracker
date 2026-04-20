@@ -148,6 +148,26 @@ func (s *DepartmentRepositorySuite) TestEquipment_PreloadAfterDelete() {
 	s.Empty(with.Equipment)
 }
 
+func (s *DepartmentRepositorySuite) TestEquipment_PreloadUpdate() {
+	dep := newDepartment()
+	eq := newEquipment()
+	eq2 := newEquipment()
+	eq2.Name = "another"
+
+	s.Require().NoError(s.deptRepo.Create(dep))
+	s.Require().NoError(s.eqRepo.Create(eq))
+	s.Require().NoError(s.eqRepo.Create(eq2))
+
+	dep.Equipment = []*domain.Equipment{eq}
+	s.Require().NoError(s.deptRepo.Update(dep))
+
+	dep.Equipment = []*domain.Equipment{eq, eq2}
+	s.Require().NoError(s.deptRepo.Update(dep))
+
+	with, _ := s.deptRepo.Get(dep.ID, domain.DepartmentWithEquipment())
+	s.Len(with.Equipment, 2)
+}
+
 func (s *DepartmentRepositorySuite) TestEquipment_NoAutoCreate() {
 	dep := newDepartment()
 	eq := newEquipment()
@@ -170,6 +190,10 @@ func (s *DepartmentRepositorySuite) TestEquipment_NoAutoCreateOnUpdate() {
 
 	// equipment не существует → FK ошибка
 	s.Require().Error(s.deptRepo.Update(dep))
+
+	eq, err := s.eqRepo.Get(eq.ID)
+	s.Error(err)
+	s.Nil(eq)
 }
 
 func (s *DepartmentRepositorySuite) TestEquipment_Replace() {

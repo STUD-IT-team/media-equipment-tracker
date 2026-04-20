@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PostgresUserRepository struct {
@@ -102,67 +101,40 @@ func (r *PostgresUserRepository) Reload(user *domain.User, opts ...domain.UserOp
 	return nil
 }
 
+//go:inline
+func (r *PostgresUserRepository) upsertOmitFields() []string {
+	return []string{"Organizations.*", "Departments.User", "Departments.Department", "EquipmentInvocations", "AdminEquipmentInvocations", "StudioInvocations", "AdminStudioInvocations"}
+}
+
 func (r *PostgresUserRepository) Create(user *domain.User) error {
 	tx := r.db.Begin()
 	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Create(user).Error; err != nil {
+	if err := tx.Omit(r.upsertOmitFields()...).Create(user).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 
-	if user.Organizations != nil {
-		tx.Exec("DELETE FROM user_organization WHERE user_id = ?", user.ID)
-		for _, o := range user.Organizations {
-			if err := tx.Exec(
-				"INSERT INTO user_organization (user_id, organization_id) VALUES (?, ?)",
-				user.ID, o.ID,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
-	if user.Departments != nil {
-		tx.Exec("DELETE FROM user_department WHERE user_id = ?", user.ID)
-		for _, d := range user.Departments {
-			if err := tx.Exec(
-				"INSERT INTO user_department (user_id, department_id, role) VALUES (?, ?, ?)",
-				user.ID, d.DepartmentID, d.Role,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
 	return tx.Commit().Error
 }
 
 func (r *PostgresUserRepository) Update(user *domain.User) error {
 	tx := r.db.Begin()
 	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Updates(user).Error; err != nil {
+	if err := tx.Omit(r.upsertOmitFields()...).Save(user).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 
 	if user.Organizations != nil {
-		tx.Exec("DELETE FROM user_organization WHERE user_id = ?", user.ID)
-		for _, o := range user.Organizations {
-			if err := tx.Exec(
-				"INSERT INTO user_organization (user_id, organization_id) VALUES (?, ?)",
-				user.ID, o.ID,
-			).Error; err != nil {
-				return err
-			}
+		if err := tx.Model(user).Association("Organizations").Replace(user.Organizations); err != nil {
+			return errs.NewRepositoryError("update", err)
 		}
 	}
+
 	if user.Departments != nil {
-		tx.Exec("DELETE FROM user_department WHERE user_id = ?", user.ID)
-		for _, d := range user.Departments {
-			if err := tx.Exec(
-				"INSERT INTO user_department (user_id, department_id, role) VALUES (?, ?, ?)",
-				user.ID, d.DepartmentID, d.Role,
-			).Error; err != nil {
-				return err
-			}
+		if err := tx.Model(user).Association("Departments").Replace(user.Departments); err != nil {
+			return errs.NewRepositoryError("update", err)
 		}
 	}
+
 	return tx.Commit().Error
 }
 

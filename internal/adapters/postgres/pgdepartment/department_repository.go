@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PostgresDepartmentRepository struct {
@@ -60,45 +59,36 @@ func (r *PostgresDepartmentRepository) Reload(department *domain.Department, wit
 	return nil
 }
 
+//go:inline
+func (r *PostgresDepartmentRepository) upsertOmitFields() []string {
+	// * для того, чтобы во всех операциях сохраняласть только связь, в том числе: Create, Save, Replace
+	return []string{"Equipment.*", "EquipmentInvocations", "StudioInvocations", "Users"}
+}
+
 func (r *PostgresDepartmentRepository) Create(department *domain.Department) error {
 	tx := r.db.Begin()
 	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Create(department).Error; err != nil {
+	if err := tx.Omit(r.upsertOmitFields()...).Create(department).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 
-	if department.Equipment != nil {
-		tx.Exec("DELETE FROM equipment_department WHERE department_id = ?", department.ID)
-		for _, e := range department.Equipment {
-			if err := tx.Exec(
-				"INSERT INTO equipment_department (department_id, equipment_id) VALUES (?, ?)",
-				department.ID, e.ID,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
 	return tx.Commit().Error
 }
 
 func (r *PostgresDepartmentRepository) Update(department *domain.Department) error {
 	tx := r.db.Begin()
 	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Save(department).Error; err != nil {
+	if err := tx.Omit(r.upsertOmitFields()...).Save(department).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 
+	// Нужно, так как Save может только добавлять связи, но не удалять существующие в БД
 	if department.Equipment != nil {
-		tx.Exec("DELETE FROM equipment_department WHERE department_id = ?", department.ID)
-		for _, e := range department.Equipment {
-			if err := tx.Exec(
-				"INSERT INTO equipment_department (department_id, equipment_id) VALUES (?, ?)",
-				department.ID, e.ID,
-			).Error; err != nil {
-				return err
-			}
+		if err := tx.Model(department).Association("Equipment").Replace(department.Equipment); err != nil {
+			return errs.NewRepositoryError("update", err)
 		}
 	}
+
 	return tx.Commit().Error
 }
 

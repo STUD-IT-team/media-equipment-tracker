@@ -28,7 +28,8 @@ CREATE TABLE user_organization
     user_id         UUID,
     organization_id UUID,
     FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL,
-    FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL
+    FOREIGN KEY (organization_id) REFERENCES organization (id) ON DELETE SET NULL,
+    PRIMARY KEY (user_id, organization_id)
 );
 
 CREATE TYPE equipment_invocation_status AS ENUM (

@@ -74,6 +74,11 @@ func (s *OrganizationRelationsSuite) TestUsers_Preload() {
 	user.Organizations = []*domain.Organization{org}
 	s.Require().NoError(s.userRepo.Update(user))
 
+	user, err := s.userRepo.Get(user.ID, domain.UserWithOrganizations())
+	s.NoError(err)
+	s.Len(user.Organizations, 1)
+	s.Equal(org.ID, user.Organizations[0].ID)
+
 	// без preload
 	raw, _ := s.orgRepo.Get(org.ID)
 	s.Empty(raw.Users)
