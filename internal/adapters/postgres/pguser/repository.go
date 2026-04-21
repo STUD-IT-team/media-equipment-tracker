@@ -1,37 +1,44 @@
 package pguser
 
 import (
+	"context"
+	"errors"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PostgresUserRepository struct {
-	db *gorm.DB
+	db *gormtx.DBGetter
 }
 
-func NewPostgresUserRepository(db *gorm.DB) domain.UserRepository {
+func NewPostgresUserRepository(db *gormtx.DBGetter) domain.UserRepository {
 	return &PostgresUserRepository{db: db}
 }
 
-func (r *PostgresUserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*domain.User, error) {
+func (r *PostgresUserRepository) Get(ctx context.Context, id uuid.UUID, opts ...domain.UserOption) (*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("get", err)
+	}
 	var user domain.User
-	query := r.db
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.First(&user, "id = ?", id).Error
+	err = query.First(&user, "id = ?", id).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("User", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -40,21 +47,24 @@ func (r *PostgresUserRepository) Get(id uuid.UUID, opts ...domain.UserOption) (*
 	return &user, nil
 }
 
-func (r *PostgresUserRepository) GetByEmail(email string, opts ...domain.UserOption) (*domain.User, error) {
+func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string, opts ...domain.UserOption) (*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("get by email", err)
+	}
 	var user domain.User
-	query := r.db
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.First(&user, "email = ?", email).Error
+	err = query.First(&user, "email = ?", email).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("User", email)
 		}
 		return nil, errs.NewRepositoryError("get by email", err)
@@ -63,19 +73,22 @@ func (r *PostgresUserRepository) GetByEmail(email string, opts ...domain.UserOpt
 	return &user, nil
 }
 
-func (r *PostgresUserRepository) List(opts ...domain.UserOption) ([]*domain.User, error) {
+func (r *PostgresUserRepository) List(ctx context.Context, opts ...domain.UserOption) ([]*domain.User, error) {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("list", err)
+	}
 	var users []*domain.User
-	query := r.db
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(&users).Error
+	err = query.Find(&users).Error
 	if err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
@@ -83,18 +96,23 @@ func (r *PostgresUserRepository) List(opts ...domain.UserOption) ([]*domain.User
 	return users, nil
 }
 
-func (r *PostgresUserRepository) Reload(user *domain.User, opts ...domain.UserOption) error {
+func (r *PostgresUserRepository) Reload(ctx context.Context, user *domain.User, opts ...domain.UserOption) error {
 	options := &domain.UserOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	query := r.db
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("reload", err)
+	}
+
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 
-	err := query.Find(user, "id = ?", user.ID).Error
+	err = query.Find(user, "id = ?", user.ID).Error
 	if err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
@@ -102,72 +120,60 @@ func (r *PostgresUserRepository) Reload(user *domain.User, opts ...domain.UserOp
 	return nil
 }
 
-func (r *PostgresUserRepository) Create(user *domain.User) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Create(user).Error; err != nil {
+func (r *PostgresUserRepository) upsertOmitFields() []string {
+	return []string{"Organizations.*", "Departments.User", "Departments.Department", "EquipmentInvocations", "AdminEquipmentInvocations", "StudioInvocations", "AdminStudioInvocations"}
+}
+
+func (r *PostgresUserRepository) Create(ctx context.Context, user *domain.User) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
+	if err := db.Omit(r.upsertOmitFields()...).Create(user).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 
-	if user.Organizations != nil {
-		tx.Exec("DELETE FROM user_organization WHERE user_id = ?", user.ID)
-		for _, o := range user.Organizations {
-			if err := tx.Exec(
-				"INSERT INTO user_organization (user_id, organization_id) VALUES (?, ?)",
-				user.ID, o.ID,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
-	if user.Departments != nil {
-		tx.Exec("DELETE FROM user_department WHERE user_id = ?", user.ID)
-		for _, d := range user.Departments {
-			if err := tx.Exec(
-				"INSERT INTO user_department (user_id, department_id, role) VALUES (?, ?, ?)",
-				user.ID, d.DepartmentID, d.Role,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
-	return tx.Commit().Error
+	return nil
 }
 
-func (r *PostgresUserRepository) Update(user *domain.User) error {
-	tx := r.db.Begin()
-	defer tx.Rollback()
-	if err := tx.Omit(clause.Associations).Updates(user).Error; err != nil {
+func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 
-	if user.Organizations != nil {
-		tx.Exec("DELETE FROM user_organization WHERE user_id = ?", user.ID)
-		for _, o := range user.Organizations {
-			if err := tx.Exec(
-				"INSERT INTO user_organization (user_id, organization_id) VALUES (?, ?)",
-				user.ID, o.ID,
-			).Error; err != nil {
-				return err
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit(r.upsertOmitFields()...).Save(user).Error; err != nil {
+			return errs.NewRepositoryError("update", err)
+		}
+
+		if user.Organizations != nil {
+			if err := tx.Model(user).Association("Organizations").Replace(user.Organizations); err != nil {
+				return errs.NewRepositoryError("update", err)
 			}
 		}
-	}
-	if user.Departments != nil {
-		tx.Exec("DELETE FROM user_department WHERE user_id = ?", user.ID)
-		for _, d := range user.Departments {
-			if err := tx.Exec(
-				"INSERT INTO user_department (user_id, department_id, role) VALUES (?, ?, ?)",
-				user.ID, d.DepartmentID, d.Role,
-			).Error; err != nil {
-				return err
+
+		if user.Departments != nil {
+			if err := tx.Model(user).Association("Departments").Replace(user.Departments); err != nil {
+				return errs.NewRepositoryError("update", err)
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
 	}
-	return tx.Commit().Error
+
+	return nil
 }
 
-func (r *PostgresUserRepository) Delete(id uuid.UUID) error {
-	err := r.db.Delete(&domain.User{}, "id = ?", id).Error
+func (r *PostgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
+	err = db.Delete(&domain.User{}, "id = ?", id).Error
 	if err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}

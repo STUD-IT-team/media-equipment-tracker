@@ -1,6 +1,10 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type EquipmentInInvocation struct {
 	InvocationID uuid.UUID                   `gorm:"type:uuid;primaryKey"`
@@ -50,10 +54,10 @@ func WithEquipment() EquipmentInInvocationOption {
 }
 
 type EquipmentInInvocationRepository interface {
-	Get(invocationID uuid.UUID, equipmentID uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInInvocation, error)
-	GetByInvocation(invocationID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
-	GetByEquipment(equipmentID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
-	Create(equipmentInInvocation *EquipmentInInvocation) error
-	Update(equipmentInInvocation *EquipmentInInvocation) error
-	Delete(invocationID uuid.UUID, equipmentID uuid.UUID) error
+	Get(ctx context.Context, invocationID uuid.UUID, equipmentID uuid.UUID, with ...EquipmentInInvocationOption) (*EquipmentInInvocation, error)
+	GetByInvocation(ctx context.Context, invocationID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
+	GetByEquipment(ctx context.Context, equipmentID uuid.UUID, with ...EquipmentInInvocationOption) ([]*EquipmentInInvocation, error)
+	Create(ctx context.Context, equipmentInInvocation *EquipmentInInvocation) error
+	Update(ctx context.Context, equipmentInInvocation *EquipmentInInvocation) error
+	Delete(ctx context.Context, invocationID uuid.UUID, equipmentID uuid.UUID) error
 }

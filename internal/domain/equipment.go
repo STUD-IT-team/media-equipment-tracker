@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -72,12 +74,12 @@ func EquipmentWithEquipmentInInvocations() EquipmentOption {
 }
 
 type EquipmentRepository interface {
-	Get(id uuid.UUID, with ...EquipmentOption) (*Equipment, error)
-	GetUnoccupied(with ...EquipmentOption) ([]*Equipment, error)
-	List(with ...EquipmentOption) ([]*Equipment, error)
-	Reload(equipment *Equipment, with ...EquipmentOption) error
+	Get(ctx context.Context, id uuid.UUID, with ...EquipmentOption) (*Equipment, error)
+	GetUnoccupied(ctx context.Context, with ...EquipmentOption) ([]*Equipment, error)
+	List(ctx context.Context, with ...EquipmentOption) ([]*Equipment, error)
+	Reload(ctx context.Context, equipment *Equipment, with ...EquipmentOption) error
 
-	Create(equipment *Equipment) error
-	Update(equipment *Equipment) error
-	Delete(id uuid.UUID) error
+	Create(ctx context.Context, equipment *Equipment) error
+	Update(ctx context.Context, equipment *Equipment) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

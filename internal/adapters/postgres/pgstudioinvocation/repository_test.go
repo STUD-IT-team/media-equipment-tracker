@@ -3,6 +3,7 @@
 package pgstudioinvocation_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type StudioInvocationSuite struct {
@@ -55,103 +57,109 @@ func (s *StudioInvocationSuite) SetupTest() {
 
 	s.db = gdb
 
-	s.repo = pgstudioinvocation.NewPostgresStudioInvocationRepository(gdb)
-	s.org = pgorganization.NewPostgresOrganizationRepository(gdb)
-	s.dep = pgdepartment.NewPostgresDepartmentRepository(gdb)
-	s.user = pguser.NewPostgresUserRepository(gdb)
+	s.repo = pgstudioinvocation.NewPostgresStudioInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.org = pgorganization.NewPostgresOrganizationRepository(gormtx.NewDBGetter(gdb))
+	s.dep = pgdepartment.NewPostgresDepartmentRepository(gormtx.NewDBGetter(gdb))
+	s.user = pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *StudioInvocationSuite) TestCreate_Get() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 
-	s.Require().NoError(s.org.Create(org))
-	s.Require().NoError(s.user.Create(user))
+	s.Require().NoError(s.org.Create(ctx, org))
+	s.Require().NoError(s.user.Create(ctx, user))
 
 	inv := newStudioInvocation(&org.ID, nil, &user.ID, &user.ID)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	got, err := s.repo.Get(inv.ID)
+	got, err := s.repo.Get(ctx, inv.ID)
 	s.NoError(err)
 	s.Equal(inv.EventName, got.EventName)
 }
 
 func (s *StudioInvocationSuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New())
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestList() {
+	ctx := context.Background()
 	org := newOrg()
 	dep := newDept()
 	user := newUser()
 
-	s.Require().NoError(s.org.Create(org))
-	s.Require().NoError(s.dep.Create(dep))
-	s.Require().NoError(s.user.Create(user))
+	s.Require().NoError(s.org.Create(ctx, org))
+	s.Require().NoError(s.dep.Create(ctx, dep))
+	s.Require().NoError(s.user.Create(ctx, user))
 
 	inv1 := newStudioInvocation(&org.ID, nil, &user.ID, &user.ID)
 
 	inv2 := newStudioInvocation(nil, &dep.ID, &user.ID, &user.ID)
 
-	s.Require().NoError(s.repo.Create(inv1))
-	s.Require().NoError(s.repo.Create(inv2))
+	s.Require().NoError(s.repo.Create(ctx, inv1))
+	s.Require().NoError(s.repo.Create(ctx, inv2))
 
-	list, err := s.repo.List()
+	list, err := s.repo.List(ctx)
 	s.NoError(err)
 	s.Len(list, 2)
 }
 
 func (s *StudioInvocationSuite) TestUpdate() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 
-	s.Require().NoError(s.org.Create(org))
-	s.Require().NoError(s.user.Create(user))
+	s.Require().NoError(s.org.Create(ctx, org))
+	s.Require().NoError(s.user.Create(ctx, user))
 
 	inv := newStudioInvocation(&org.ID, nil, &user.ID, &user.ID)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
 	inv.EventName = "UPDATED"
-	s.Require().NoError(s.repo.Update(inv))
+	s.Require().NoError(s.repo.Update(ctx, inv))
 
-	got, err := s.repo.Get(inv.ID)
+	got, err := s.repo.Get(ctx, inv.ID)
 	s.NoError(err)
 	s.Equal("UPDATED", got.EventName)
 }
 
 func (s *StudioInvocationSuite) TestDelete() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 
-	s.Require().NoError(s.org.Create(org))
-	s.Require().NoError(s.user.Create(user))
+	s.Require().NoError(s.org.Create(ctx, org))
+	s.Require().NoError(s.user.Create(ctx, user))
 
 	inv := newStudioInvocation(&org.ID, nil, &user.ID, &user.ID)
 
-	s.Require().NoError(s.repo.Create(inv))
-	s.Require().NoError(s.repo.Delete(inv.ID))
+	s.Require().NoError(s.repo.Create(ctx, inv))
+	s.Require().NoError(s.repo.Delete(ctx, inv.ID))
 
-	_, err := s.repo.Get(inv.ID)
+	_, err := s.repo.Get(ctx, inv.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestPreload_AllRelations() {
+	ctx := context.Background()
 	org := newOrg()
 	admin := newUser()
 	user := newUser()
 
-	s.Require().NoError(s.org.Create(org))
-	s.Require().NoError(s.user.Create(admin))
-	s.Require().NoError(s.user.Create(user))
+	s.Require().NoError(s.org.Create(ctx, org))
+	s.Require().NoError(s.user.Create(ctx, admin))
+	s.Require().NoError(s.user.Create(ctx, user))
 
 	inv := newStudioInvocation(&org.ID, nil, &user.ID, &admin.ID)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	with, err := s.repo.Get(inv.ID,
+	with, err := s.repo.Get(ctx, inv.ID,
 		domain.StudioInvocationWithOrganization(),
 		domain.StudioInvocationWithAdmin(),
 		domain.StudioInvocationWithDepartment(),
@@ -167,243 +175,255 @@ func (s *StudioInvocationSuite) TestPreload_AllRelations() {
 }
 
 func (s *StudioInvocationSuite) TestOrganization_NoAutoCreate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	org := newOrg()
 
 	inv := newStudioInvocation(&org.ID, nil, &usr.ID, nil)
 
 	// organization не существует → FK ошибка
-	s.Require().Error(s.repo.Create(inv))
+	s.Require().Error(s.repo.Create(ctx, inv))
 
-	_, err := s.org.Get(org.ID)
+	_, err := s.org.Get(ctx, org.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestDepartment_NoAutoCreate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	dep := newDept()
 
 	inv := newStudioInvocation(nil, &dep.ID, &usr.ID, nil)
 
-	s.Require().Error(s.repo.Create(inv))
+	s.Require().Error(s.repo.Create(ctx, inv))
 
-	_, err := s.dep.Get(dep.ID)
+	_, err := s.dep.Get(ctx, dep.ID)
 	s.Error(err)
 }
 func (s *StudioInvocationSuite) TestUser_NoAutoCreate() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.org.Create(org))
+	s.NoError(s.org.Create(ctx, org))
 
 	user := newUser()
 
 	inv := newStudioInvocation(&org.ID, nil, &user.ID, nil)
 
-	s.Require().Error(s.repo.Create(inv))
+	s.Require().Error(s.repo.Create(ctx, inv))
 
-	_, err := s.user.Get(user.ID)
+	_, err := s.user.Get(ctx, user.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestAdmin_NoAutoCreate() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.org.Create(org))
+	s.NoError(s.org.Create(ctx, org))
 
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 	admin := newUser()
 
 	inv := newStudioInvocation(&org.ID, nil, &usr.ID, &admin.ID)
 
-	s.Require().Error(s.repo.Create(inv))
+	s.Require().Error(s.repo.Create(ctx, inv))
 
-	_, err := s.user.Get(admin.ID)
+	_, err := s.user.Get(ctx, admin.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestOrganization_NoAutoCreateOnUpdate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	someOrg := newOrg()
 	someOrg.Name = "some"
-	s.Require().NoError(s.org.Create(someOrg))
+	s.Require().NoError(s.org.Create(ctx, someOrg))
 
 	inv := newStudioInvocation(&someOrg.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
 	org := newOrg()
 	inv.OrganizationID = &org.ID
-	s.Require().Error(s.repo.Update(inv))
+	s.Require().Error(s.repo.Update(ctx, inv))
 
-	_, err := s.org.Get(org.ID)
+	_, err := s.org.Get(ctx, org.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestDepartment_NoAutoCreateOnUpdate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	someOrg := newOrg()
 	someOrg.Name = "some"
-	s.Require().NoError(s.org.Create(someOrg))
+	s.Require().NoError(s.org.Create(ctx, someOrg))
 
 	inv := newStudioInvocation(&someOrg.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
 	dep := newDept()
 	inv.DepartmentID = &dep.ID
 	inv.OrganizationID = nil
-	s.Require().Error(s.repo.Update(inv))
+	s.Require().Error(s.repo.Update(ctx, inv))
 
-	_, err := s.dep.Get(dep.ID)
+	_, err := s.dep.Get(ctx, dep.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestUser_NoAutoCreateOnUpdate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	someOrg := newOrg()
 	someOrg.Name = "some"
-	s.Require().NoError(s.org.Create(someOrg))
+	s.Require().NoError(s.org.Create(ctx, someOrg))
 
 	inv := newStudioInvocation(&someOrg.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
 	user := newUser()
 	inv.UserID = user.ID
-	s.Require().Error(s.repo.Update(inv))
+	s.Require().Error(s.repo.Update(ctx, inv))
 
-	_, err := s.user.Get(user.ID)
+	_, err := s.user.Get(ctx, user.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestAdmin_NoAutoCreateOnUpdate() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	someOrg := newOrg()
 	someOrg.Name = "some"
-	s.Require().NoError(s.org.Create(someOrg))
+	s.Require().NoError(s.org.Create(ctx, someOrg))
 
 	inv := newStudioInvocation(&someOrg.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
 	user := newUser()
 	inv.AdminID = &user.ID
-	s.Require().Error(s.repo.Update(inv))
+	s.Require().Error(s.repo.Update(ctx, inv))
 
-	_, err := s.user.Get(user.ID)
+	_, err := s.user.Get(ctx, user.ID)
 	s.Error(err)
 }
 
 func (s *StudioInvocationSuite) TestUpdateThroughStudioInvocation_OrganizationNotChanged() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	org := newOrg()
-	s.Require().NoError(s.org.Create(org))
+	s.Require().NoError(s.org.Create(ctx, org))
 
 	inv := newStudioInvocation(&org.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	with, err := s.repo.Get(inv.ID,
+	with, err := s.repo.Get(ctx, inv.ID,
 		domain.StudioInvocationWithOrganization(),
 	)
 	s.Require().NoError(err)
 
 	with.Organization.Name = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.org.Get(org.ID)
+	got, err := s.org.Get(ctx, org.ID)
 	s.Require().NoError(err)
 
 	s.NotEqual("HACKED", got.Name)
 }
 
 func (s *StudioInvocationSuite) TestUpdateThroughStudioInvocation_DepartmentNotChanged() {
+	ctx := context.Background()
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	dep := newDept()
-	s.Require().NoError(s.dep.Create(dep))
+	s.Require().NoError(s.dep.Create(ctx, dep))
 
 	inv := newStudioInvocation(nil, &dep.ID, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	with, err := s.repo.Get(inv.ID,
+	with, err := s.repo.Get(ctx, inv.ID,
 		domain.StudioInvocationWithDepartment(),
 	)
 	s.Require().NoError(err)
 
 	with.Department.Name = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.dep.Get(dep.ID)
+	got, err := s.dep.Get(ctx, dep.ID)
 	s.Require().NoError(err)
 
 	s.NotEqual("HACKED", got.Name)
 }
 
 func (s *StudioInvocationSuite) TestUpdateThroughStudioInvocation_UserNotChanged() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.org.Create(org))
+	s.NoError(s.org.Create(ctx, org))
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 
 	inv := newStudioInvocation(&org.ID, nil, &usr.ID, nil)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	with, err := s.repo.Get(inv.ID,
+	with, err := s.repo.Get(ctx, inv.ID,
 		domain.StudioInvocationWithUser(),
 	)
 	s.Require().NoError(err)
 
 	with.User.FullName = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.user.Get(usr.ID)
+	got, err := s.user.Get(ctx, usr.ID)
 	s.Require().NoError(err)
 
 	s.NotEqual("HACKED", got.FullName)
 }
 
 func (s *StudioInvocationSuite) TestUpdateThroughStudioInvocation_AdminNotChanged() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.org.Create(org))
+	s.NoError(s.org.Create(ctx, org))
 	usr := newUser()
-	s.NoError(s.user.Create(usr))
+	s.NoError(s.user.Create(ctx, usr))
 	admin := newUser()
-	s.Require().NoError(s.user.Create(admin))
+	s.Require().NoError(s.user.Create(ctx, admin))
 
 	inv := newStudioInvocation(&org.ID, nil, &usr.ID, &admin.ID)
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	with, err := s.repo.Get(inv.ID,
+	with, err := s.repo.Get(ctx, inv.ID,
 		domain.StudioInvocationWithAdmin(),
 	)
 	s.Require().NoError(err)
 
 	with.Admin.FullName = "HACKED"
 
-	s.Require().NoError(s.repo.Update(with))
+	s.Require().NoError(s.repo.Update(ctx, with))
 
-	got, err := s.user.Get(admin.ID)
+	got, err := s.user.Get(ctx, admin.ID)
 	s.Require().NoError(err)
 
 	s.NotEqual("HACKED", got.FullName)

@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"media-equipment-tracker/cmd/app/config"
 
@@ -26,15 +26,19 @@ import (
 func main() {
 	engine := gin.New()
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
-		config.PostgresHost, config.PostgresUser, config.PostgresPassword, config.PostgresDatabase, config.PostgresPort)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	dbGetter, _, err := gormtx.New(
+		gormtx.WithHost(config.PostgresHost),
+		gormtx.WithPort(uint16(config.PostgresPort)),
+		gormtx.WithUser(config.PostgresUser),
+		gormtx.WithPassword(config.PostgresPassword),
+		gormtx.WithDatabase(config.PostgresDatabase),
+	)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	// Repository
-	userRepo := pguser.NewPostgresUserRepository(db)
+	userRepo := pguser.NewPostgresUserRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()

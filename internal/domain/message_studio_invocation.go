@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,9 +54,9 @@ func MessageStudioInvocationWithRecipient() MessageStudioInvocationOption {
 }
 
 type MessageStudioInvocationRepository interface {
-	Get(id uuid.UUID, with ...MessageStudioInvocationOption) (*MessageStudioInvocation, error)
-	GetInvocation(invocationID uuid.UUID, with ...MessageStudioInvocationOption) ([]*MessageStudioInvocation, error)
-	Create(messageStudioInvocation *MessageStudioInvocation) error
-	Update(messageStudioInvocation *MessageStudioInvocation) error
-	Delete(id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, with ...MessageStudioInvocationOption) (*MessageStudioInvocation, error)
+	GetInvocation(ctx context.Context, invocationID uuid.UUID, with ...MessageStudioInvocationOption) ([]*MessageStudioInvocation, error)
+	Create(ctx context.Context, messageStudioInvocation *MessageStudioInvocation) error
+	Update(ctx context.Context, messageStudioInvocation *MessageStudioInvocation) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

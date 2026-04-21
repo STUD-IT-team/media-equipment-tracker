@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -57,10 +59,10 @@ func WithStudioInvocations() OrganizationOption {
 }
 
 type OrganizationRepository interface {
-	Get(id uuid.UUID, with ...OrganizationOption) (*Organization, error)
-	List(with ...OrganizationOption) ([]*Organization, error)
-	Reload(organization *Organization, with ...OrganizationOption) error
-	Create(organization *Organization) error
-	Update(organization *Organization) error
-	Delete(id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, with ...OrganizationOption) (*Organization, error)
+	List(ctx context.Context, with ...OrganizationOption) ([]*Organization, error)
+	Reload(ctx context.Context, organization *Organization, with ...OrganizationOption) error
+	Create(ctx context.Context, organization *Organization) error
+	Update(ctx context.Context, organization *Organization) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

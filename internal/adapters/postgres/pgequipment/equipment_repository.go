@@ -1,8 +1,12 @@
 package pgequipment
 
 import (
+	"context"
+	"errors"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -10,32 +14,36 @@ import (
 )
 
 type PostgresEquipmentRepository struct {
-	db *gorm.DB
+	db *gormtx.DBGetter
 }
 
-func NewPostgresEquipmentRepository(db *gorm.DB) *PostgresEquipmentRepository {
+func NewPostgresEquipmentRepository(db *gormtx.DBGetter) *PostgresEquipmentRepository {
 	return &PostgresEquipmentRepository{db: db}
 }
 
 var _ domain.EquipmentRepository = (*PostgresEquipmentRepository)(nil)
 
-func (r *PostgresEquipmentRepository) applyOptions(opts []domain.EquipmentOption) *gorm.DB {
+func (r *PostgresEquipmentRepository) applyOptions(ctx context.Context, opts []domain.EquipmentOption) *gorm.DB {
 	options := &domain.EquipmentOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-	query := r.db
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil
+	}
+	query := db
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
 	return query
 }
 
-func (r *PostgresEquipmentRepository) Get(id uuid.UUID, with ...domain.EquipmentOption) (*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) Get(ctx context.Context, id uuid.UUID, with ...domain.EquipmentOption) (*domain.Equipment, error) {
 	var eq domain.Equipment
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.First(&eq, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("Equipment", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -43,48 +51,60 @@ func (r *PostgresEquipmentRepository) Get(id uuid.UUID, with ...domain.Equipment
 	return &eq, nil
 }
 
-func (r *PostgresEquipmentRepository) GetUnoccupied(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) GetUnoccupied(ctx context.Context, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	var equipment []*domain.Equipment
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.Where("current_invocation_id IS NULL").Find(&equipment).Error; err != nil {
 		return nil, errs.NewRepositoryError("get_unoccupied", err)
 	}
 	return equipment, nil
 }
 
-func (r *PostgresEquipmentRepository) List(with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) List(ctx context.Context, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	var equipment []*domain.Equipment
-	query := r.applyOptions(with)
+	query := r.applyOptions(ctx, with)
 	if err := query.Find(&equipment).Error; err != nil {
 		return nil, errs.NewRepositoryError("list", err)
 	}
 	return equipment, nil
 }
 
-func (r *PostgresEquipmentRepository) Reload(equipment *domain.Equipment, with ...domain.EquipmentOption) error {
-	query := r.applyOptions(with)
+func (r *PostgresEquipmentRepository) Reload(ctx context.Context, equipment *domain.Equipment, with ...domain.EquipmentOption) error {
+	query := r.applyOptions(ctx, with)
 	if err := query.First(equipment, "id = ?", equipment.ID).Error; err != nil {
 		return errs.NewRepositoryError("reload", err)
 	}
 	return nil
 }
 
-func (r *PostgresEquipmentRepository) Create(equipment *domain.Equipment) error {
-	if err := r.db.Omit(clause.Associations).Create(equipment).Error; err != nil {
+func (r *PostgresEquipmentRepository) Create(ctx context.Context, equipment *domain.Equipment) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("create", err)
+	}
+	if err := db.Omit(clause.Associations).Create(equipment).Error; err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
 }
 
-func (r *PostgresEquipmentRepository) Update(equipment *domain.Equipment) error {
-	if err := r.db.Omit(clause.Associations).Save(equipment).Error; err != nil {
+func (r *PostgresEquipmentRepository) Update(ctx context.Context, equipment *domain.Equipment) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("update", err)
+	}
+	if err := db.Omit(clause.Associations).Save(equipment).Error; err != nil {
 		return errs.NewRepositoryError("update", err)
 	}
 	return nil
 }
 
-func (r *PostgresEquipmentRepository) Delete(id uuid.UUID) error {
-	if err := r.db.Delete(&domain.Equipment{}, "id = ?", id).Error; err != nil {
+func (r *PostgresEquipmentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return errs.NewRepositoryError("delete", err)
+	}
+	if err := db.Delete(&domain.Equipment{}, "id = ?", id).Error; err != nil {
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil

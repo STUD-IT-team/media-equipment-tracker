@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,9 +54,9 @@ func MessageEquipmentInvocationWithRecipient() MessageEquipmentInvocationOption 
 }
 
 type MessageEquipmentInvocationRepository interface {
-	Get(id uuid.UUID, with ...MessageEquipmentInvocationOption) (*MessageEquipmentInvocation, error)
-	GetInvocation(invocationID uuid.UUID, with ...MessageEquipmentInvocationOption) ([]*MessageEquipmentInvocation, error)
-	Create(messageEquipmentInvocation *MessageEquipmentInvocation) error
-	Update(messageEquipmentInvocation *MessageEquipmentInvocation) error
-	Delete(id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, with ...MessageEquipmentInvocationOption) (*MessageEquipmentInvocation, error)
+	GetInvocation(ctx context.Context, invocationID uuid.UUID, with ...MessageEquipmentInvocationOption) ([]*MessageEquipmentInvocation, error)
+	Create(ctx context.Context, messageEquipmentInvocation *MessageEquipmentInvocation) error
+	Update(ctx context.Context, messageEquipmentInvocation *MessageEquipmentInvocation) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

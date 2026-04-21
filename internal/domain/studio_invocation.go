@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -93,11 +94,11 @@ func StudioInvocationWithUser() StudioInvocationOption {
 }
 
 type StudioInvocationRepository interface {
-	Get(id uuid.UUID, with ...StudioInvocationOption) (*StudioInvocation, error)
-	List(with ...StudioInvocationOption) ([]*StudioInvocation, error)
-	Reload(studioInvocation *StudioInvocation, with ...StudioInvocationOption) error
+	Get(ctx context.Context, id uuid.UUID, with ...StudioInvocationOption) (*StudioInvocation, error)
+	List(ctx context.Context, with ...StudioInvocationOption) ([]*StudioInvocation, error)
+	Reload(ctx context.Context, studioInvocation *StudioInvocation, with ...StudioInvocationOption) error
 
-	Create(studioInvocation *StudioInvocation) error
-	Update(studioInvocation *StudioInvocation) error
-	Delete(id uuid.UUID) error
+	Create(ctx context.Context, studioInvocation *StudioInvocation) error
+	Update(ctx context.Context, studioInvocation *StudioInvocation) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }

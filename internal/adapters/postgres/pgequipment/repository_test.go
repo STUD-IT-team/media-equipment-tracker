@@ -3,6 +3,7 @@
 package pgequipment_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type EquipmentRepositorySuite struct {
@@ -48,74 +50,80 @@ func (s *EquipmentRepositorySuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgequipment.NewPostgresEquipmentRepository(gdb)
+	s.repo = pgequipment.NewPostgresEquipmentRepository(gormtx.NewDBGetter(gdb))
 }
 
 // --- tests ---
 
 func (s *EquipmentRepositorySuite) TestCreate_Get() {
+	ctx := context.Background()
 	eq := newEquipment()
 
-	s.Require().NoError(s.repo.Create(eq))
+	s.Require().NoError(s.repo.Create(ctx, eq))
 
-	got, err := s.repo.Get(eq.ID)
+	got, err := s.repo.Get(ctx, eq.ID)
 	s.NoError(err)
 	s.Equal(eq.InventoryNumber, got.InventoryNumber)
 }
 
 func (s *EquipmentRepositorySuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New())
 	s.Error(err)
 }
 
 func (s *EquipmentRepositorySuite) TestList() {
+	ctx := context.Background()
 	e1, e2 := newEquipment(), newEquipment()
 
-	err := s.repo.Create(e1)
+	err := s.repo.Create(ctx, e1)
 	s.NoError(err)
-	err = s.repo.Create(e2)
+	err = s.repo.Create(ctx, e2)
 	s.NoError(err)
 
-	list, err := s.repo.List()
+	list, err := s.repo.List(ctx)
 	s.NoError(err)
 	s.Len(list, 2)
 }
 
 func (s *EquipmentRepositorySuite) TestUpdate() {
+	ctx := context.Background()
 	eq := newEquipment()
-	err := s.repo.Create(eq)
+	err := s.repo.Create(ctx, eq)
 	s.NoError(err)
 
 	eq.Name = "updated"
-	s.NoError(s.repo.Update(eq))
+	s.NoError(s.repo.Update(ctx, eq))
 
-	got, err := s.repo.Get(eq.ID)
+	got, err := s.repo.Get(ctx, eq.ID)
 	s.NoError(err)
 	s.Equal("updated", got.Name)
 }
 
 func (s *EquipmentRepositorySuite) TestDelete() {
+	ctx := context.Background()
 	eq := newEquipment()
-	err := s.repo.Create(eq)
+	err := s.repo.Create(ctx, eq)
 	s.NoError(err)
 
-	s.NoError(s.repo.Delete(eq.ID))
+	s.NoError(s.repo.Delete(ctx, eq.ID))
 
-	_, err = s.repo.Get(eq.ID)
+	_, err = s.repo.Get(ctx, eq.ID)
 	s.Error(err)
 }
 
 func (s *EquipmentRepositorySuite) TestReload() {
+	ctx := context.Background()
 	eq := newEquipment()
-	err := s.repo.Create(eq)
+	err := s.repo.Create(ctx, eq)
 	s.NoError(err)
 
 	eq.Name = "updated"
-	err = s.repo.Update(eq)
+	err = s.repo.Update(ctx, eq)
 	s.NoError(err)
 
 	eq.Name = "stale"
-	s.NoError(s.repo.Reload(eq))
+	s.NoError(s.repo.Reload(ctx, eq))
 
 	s.Equal("updated", eq.Name)
 }

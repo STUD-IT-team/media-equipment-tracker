@@ -3,6 +3,7 @@
 package pgorganization_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type OrganizationRepositorySuite struct {
@@ -48,53 +50,58 @@ func (s *OrganizationRepositorySuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgorganization.NewPostgresOrganizationRepository(gdb)
+	s.repo = pgorganization.NewPostgresOrganizationRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *OrganizationRepositorySuite) TestCreate_Get() {
+	ctx := context.Background()
 	org := newOrg()
 
-	s.Require().NoError(s.repo.Create(org))
+	s.Require().NoError(s.repo.Create(ctx, org))
 
-	got, err := s.repo.Get(org.ID)
+	got, err := s.repo.Get(ctx, org.ID)
 	s.NoError(err)
 	s.Equal(org.Name, got.Name)
 }
 
 func (s *OrganizationRepositorySuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New())
 	s.Error(err)
 }
 
 func (s *OrganizationRepositorySuite) TestList() {
+	ctx := context.Background()
 	o1, o2 := newOrg(), newOrg()
 
-	s.NoError(s.repo.Create(o1))
-	s.NoError(s.repo.Create(o2))
+	s.NoError(s.repo.Create(ctx, o1))
+	s.NoError(s.repo.Create(ctx, o2))
 
-	list, err := s.repo.List()
+	list, err := s.repo.List(ctx)
 	s.NoError(err)
 	s.Len(list, 2)
 }
 
 func (s *OrganizationRepositorySuite) TestUpdate() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.repo.Create(org))
+	s.NoError(s.repo.Create(ctx, org))
 
 	org.Name = "updated"
-	s.NoError(s.repo.Update(org))
+	s.NoError(s.repo.Update(ctx, org))
 
-	got, _ := s.repo.Get(org.ID)
+	got, _ := s.repo.Get(ctx, org.ID)
 	s.Equal("updated", got.Name)
 }
 
 func (s *OrganizationRepositorySuite) TestDelete() {
+	ctx := context.Background()
 	org := newOrg()
-	s.NoError(s.repo.Create(org))
+	s.NoError(s.repo.Create(ctx, org))
 
-	s.NoError(s.repo.Delete(org.ID))
+	s.NoError(s.repo.Delete(ctx, org.ID))
 
-	_, err := s.repo.Get(org.ID)
+	_, err := s.repo.Get(ctx, org.ID)
 	s.Error(err)
 }
 

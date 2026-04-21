@@ -3,6 +3,7 @@
 package pgequipmentinvocation_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/pgtest"
+	"media-equipment-tracker/pkg/txmanager/gormtx"
 )
 
 type EquipmentInvocationRepositorySuite struct {
@@ -52,72 +54,77 @@ func (s *EquipmentInvocationRepositorySuite) SetupTest() {
 	s.Require().NoError(err)
 
 	s.db = gdb
-	s.repo = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gdb)
-	s.user = pguser.NewPostgresUserRepository(gdb)
-	s.org = pgorganization.NewPostgresOrganizationRepository(gdb)
+	s.repo = pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(gormtx.NewDBGetter(gdb))
+	s.user = pguser.NewPostgresUserRepository(gormtx.NewDBGetter(gdb))
+	s.org = pgorganization.NewPostgresOrganizationRepository(gormtx.NewDBGetter(gdb))
 }
 
 func (s *EquipmentInvocationRepositorySuite) TestCreate_Get() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 	inv := newInvocation(&org.ID, nil, user.ID, nil)
-	s.NoError(s.user.Create(user))
-	s.NoError(s.org.Create(org))
+	s.NoError(s.user.Create(ctx, user))
+	s.NoError(s.org.Create(ctx, org))
 
-	s.Require().NoError(s.repo.Create(inv))
+	s.Require().NoError(s.repo.Create(ctx, inv))
 
-	got, err := s.repo.Get(inv.ID)
+	got, err := s.repo.Get(ctx, inv.ID)
 	s.NoError(err)
 	s.Equal(inv.EventName, got.EventName)
 }
 
 func (s *EquipmentInvocationRepositorySuite) TestGet_NotFound() {
-	_, err := s.repo.Get(uuid.New())
+	ctx := context.Background()
+	_, err := s.repo.Get(ctx, uuid.New())
 	s.Error(err)
 }
 
 func (s *EquipmentInvocationRepositorySuite) TestList() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 	inv1 := newInvocation(&org.ID, nil, user.ID, nil)
 	inv2 := newInvocation(&org.ID, nil, user.ID, nil)
-	s.NoError(s.user.Create(user))
-	s.NoError(s.org.Create(org))
+	s.NoError(s.user.Create(ctx, user))
+	s.NoError(s.org.Create(ctx, org))
 
-	s.NoError(s.repo.Create(inv1))
-	s.NoError(s.repo.Create(inv2))
+	s.NoError(s.repo.Create(ctx, inv1))
+	s.NoError(s.repo.Create(ctx, inv2))
 
-	list, err := s.repo.List()
+	list, err := s.repo.List(ctx)
 	s.NoError(err)
 	s.Len(list, 2)
 }
 
 func (s *EquipmentInvocationRepositorySuite) TestUpdate() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 	inv := newInvocation(&org.ID, nil, user.ID, nil)
-	s.NoError(s.user.Create(user))
-	s.NoError(s.org.Create(org))
-	s.NoError(s.repo.Create(inv))
+	s.NoError(s.user.Create(ctx, user))
+	s.NoError(s.org.Create(ctx, org))
+	s.NoError(s.repo.Create(ctx, inv))
 
 	inv.EventName = "updated"
-	s.NoError(s.repo.Update(inv))
+	s.NoError(s.repo.Update(ctx, inv))
 
-	got, _ := s.repo.Get(inv.ID)
+	got, _ := s.repo.Get(ctx, inv.ID)
 	s.Equal("updated", got.EventName)
 }
 
 func (s *EquipmentInvocationRepositorySuite) TestDelete() {
+	ctx := context.Background()
 	org := newOrg()
 	user := newUser()
 	inv := newInvocation(&org.ID, nil, user.ID, nil)
-	s.NoError(s.user.Create(user))
-	s.NoError(s.org.Create(org))
-	s.NoError(s.repo.Create(inv))
+	s.NoError(s.user.Create(ctx, user))
+	s.NoError(s.org.Create(ctx, org))
+	s.NoError(s.repo.Create(ctx, inv))
 
-	s.NoError(s.repo.Delete(inv.ID))
+	s.NoError(s.repo.Delete(ctx, inv.ID))
 
-	_, err := s.repo.Get(inv.ID)
+	_, err := s.repo.Get(ctx, inv.ID)
 	s.Error(err)
 }
 

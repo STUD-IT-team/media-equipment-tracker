@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -116,12 +118,12 @@ func UserWithAdminStudioInvocations() UserOption {
 }
 
 type UserRepository interface {
-	Get(id uuid.UUID, with ...UserOption) (*User, error)
-	GetByEmail(email string, with ...UserOption) (*User, error)
-	List(with ...UserOption) ([]*User, error)
-	Reload(user *User, with ...UserOption) error
+	Get(ctx context.Context, id uuid.UUID, with ...UserOption) (*User, error)
+	GetByEmail(ctx context.Context, email string, with ...UserOption) (*User, error)
+	List(ctx context.Context, with ...UserOption) ([]*User, error)
+	Reload(ctx context.Context, user *User, with ...UserOption) error
 
-	Create(user *User) error
-	Update(user *User) error
-	Delete(id uuid.UUID) error
+	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
