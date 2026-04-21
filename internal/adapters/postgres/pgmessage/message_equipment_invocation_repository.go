@@ -2,6 +2,7 @@ package pgmessage
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -42,7 +43,7 @@ func (r *PostgresMessageEquipmentInvocationRepository) Get(ctx context.Context, 
 	var msg domain.MessageEquipmentInvocation
 	query := r.applyOptions(ctx, with)
 	if err := query.First(&msg, "id = ?", id).Error; err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("MessageEquipmentInvocation", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)

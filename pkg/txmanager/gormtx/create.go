@@ -95,8 +95,6 @@ func WithRetryCount(retryCount uint) GormTxOption {
 	}
 }
 
-type GormTxOptionFunc func(*gormTxConfig)
-
 func New(opts ...GormTxOption) (*DBGetter, *GormTxManager, error) {
 	config := newConfig()
 	config.Option(opts...)

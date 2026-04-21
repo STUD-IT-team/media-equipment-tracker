@@ -2,6 +2,7 @@ package pgdepartment
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -41,7 +42,7 @@ func (r *PostgresDepartmentRepository) Get(ctx context.Context, id uuid.UUID, wi
 	var department domain.Department
 	query := r.applyOptions(ctx, with)
 	if err := query.First(&department, "id = ?", id).Error; err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("Department", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -66,7 +67,6 @@ func (r *PostgresDepartmentRepository) Reload(ctx context.Context, department *d
 	return nil
 }
 
-//go:inline
 func (r *PostgresDepartmentRepository) upsertOmitFields() []string {
 	// * для того, чтобы во всех операциях сохраняласть только связь, в том числе: Create, Save, Replace
 	return []string{"Equipment.*", "EquipmentInvocations", "StudioInvocations", "Users"}

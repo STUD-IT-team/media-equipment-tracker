@@ -2,6 +2,7 @@ package pgequipmentinvocation
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -41,7 +42,7 @@ func (r *PostgresEquipmentInvocationRepository) Get(ctx context.Context, id uuid
 	var inv domain.EquipmentInvocation
 	query := r.applyOptions(ctx, with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("EquipmentInvocation", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -66,7 +67,6 @@ func (r *PostgresEquipmentInvocationRepository) Reload(ctx context.Context, equi
 	return nil
 }
 
-//go:inline
 func (r *PostgresEquipmentInvocationRepository) upsertOmitFields() []string {
 	return []string{"Equipment.Equipment", "Equipment.Invocation", "Admin", "User", "Organization", "Department"}
 }

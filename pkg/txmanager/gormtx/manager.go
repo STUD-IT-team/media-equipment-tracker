@@ -45,7 +45,7 @@ func (m *GormTxManager) WithinTx(ctx context.Context, fn func(ctx context.Contex
 
 		// Gorm используей pgx под капотом
 		var postgresErr *pgconn.PgError
-		if !errors.Is(err, postgresErr) {
+		if !errors.As(err, &postgresErr) {
 			return err
 		}
 		switch postgresErr.Code {

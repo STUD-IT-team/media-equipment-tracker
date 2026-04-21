@@ -2,12 +2,14 @@ package pgorganization
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -38,7 +40,7 @@ func (r *PostgresOrganizationRepository) Get(ctx context.Context, id uuid.UUID, 
 
 	err = query.First(&organization, "id = ?", id).Error
 	if err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("Organization", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)

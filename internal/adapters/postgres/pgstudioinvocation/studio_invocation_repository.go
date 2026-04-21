@@ -2,6 +2,7 @@ package pgstudioinvocation
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -42,7 +43,7 @@ func (r *PostgresStudioInvocationRepository) Get(ctx context.Context, id uuid.UU
 	var inv domain.StudioInvocation
 	query := r.applyOptions(ctx, with)
 	if err := query.First(&inv, "id = ?", id).Error; err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("StudioInvocation", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)

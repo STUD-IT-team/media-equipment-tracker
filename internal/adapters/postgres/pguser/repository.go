@@ -2,6 +2,7 @@ package pguser
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -37,7 +38,7 @@ func (r *PostgresUserRepository) Get(ctx context.Context, id uuid.UUID, opts ...
 
 	err = query.First(&user, "id = ?", id).Error
 	if err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("User", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
@@ -63,7 +64,7 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string, o
 
 	err = query.First(&user, "email = ?", email).Error
 	if err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("User", email)
 		}
 		return nil, errs.NewRepositoryError("get by email", err)
@@ -119,7 +120,6 @@ func (r *PostgresUserRepository) Reload(ctx context.Context, user *domain.User, 
 	return nil
 }
 
-//go:inline
 func (r *PostgresUserRepository) upsertOmitFields() []string {
 	return []string{"Organizations.*", "Departments.User", "Departments.Department", "EquipmentInvocations", "AdminEquipmentInvocations", "StudioInvocations", "AdminStudioInvocations"}
 }

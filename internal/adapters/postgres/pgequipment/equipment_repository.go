@@ -2,6 +2,7 @@ package pgequipment
 
 import (
 	"context"
+	"errors"
 
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -42,7 +43,7 @@ func (r *PostgresEquipmentRepository) Get(ctx context.Context, id uuid.UUID, wit
 	var eq domain.Equipment
 	query := r.applyOptions(ctx, with)
 	if err := query.First(&eq, "id = ?", id).Error; err != nil {
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewEntityNotFoundError("Equipment", id)
 		}
 		return nil, errs.NewRepositoryError("get", err)
