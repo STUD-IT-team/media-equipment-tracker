@@ -67,10 +67,20 @@ type UserOptions struct {
 	withAdminEquipmentInvocations bool
 	withStudioInvocations         bool
 	withAdminStudioInvocations    bool
+	filter                        *UserFilter
 }
 
 func (o *UserOptions) Relations() []string {
 	return o.relations
+}
+
+func (o *UserOptions) Filter() *UserFilter {
+	return o.filter
+}
+
+type UserFilter struct {
+	FullName string `form:"fullName"`
+	Email    string `form:"email"`
 }
 
 type UserOption func(options *UserOptions)
@@ -114,6 +124,12 @@ func UserWithAdminStudioInvocations() UserOption {
 	return func(options *UserOptions) {
 		options.withAdminStudioInvocations = true
 		options.relations = append(options.relations, "AdminStudioInvocations")
+	}
+}
+
+func UserWithFilter(filter UserFilter) UserOption {
+	return func(options *UserOptions) {
+		options.filter = &filter
 	}
 }
 
