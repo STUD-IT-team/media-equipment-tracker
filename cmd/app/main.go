@@ -12,14 +12,17 @@ import (
 
 	"media-equipment-tracker/internal/adapters/bcrypthasher"
 	"media-equipment-tracker/internal/adapters/inmem"
+	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
+	"media-equipment-tracker/internal/handlers/equipmentapi"
 	"media-equipment-tracker/internal/middleware"
 )
 
@@ -39,6 +42,7 @@ func main() {
 
 	// Repository
 	userRepo := pguser.NewPostgresUserRepository(dbGetter)
+	equipmentRepo := pgequipment.NewPostgresEquipmentRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
@@ -56,6 +60,9 @@ func main() {
 		panic(err.Error())
 	}
 
+	// Services
+	equipmentService := equipmentservice.NewEquipmentService(equipmentRepo, equipmentRepo)
+
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
 	_ = healthRouter
@@ -70,6 +77,10 @@ func main() {
 	// Routers
 	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
+
+	// Equipment
+	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
+	_ = equipmentRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())

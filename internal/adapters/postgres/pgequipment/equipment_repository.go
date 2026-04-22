@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -108,4 +109,44 @@ func (r *PostgresEquipmentRepository) Delete(ctx context.Context, id uuid.UUID) 
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
+}
+
+func (r *PostgresEquipmentRepository) Search(ctx context.Context, search equipmentservice.SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+	equipment := make([]*domain.Equipment, 0)
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("search", err)
+	}
+	query := r.applyOptions(ctx, with)
+
+	if search.SearchString != nil {
+		query = query.Where("name LIKE ? OR short_name LIKE ?", "%"+*search.SearchString+"%", "%"+*search.SearchString+"%")
+	}
+	if search.Categories != nil {
+		query = query.Where("category IN (?)", search.Categories)
+	}
+	if search.Statuses != nil {
+		query = query.Where("status IN (?)", search.Statuses)
+	}
+	if search.AvailableToTrainee != nil {
+		query = query.Where("available_to_trainee = ?", *search.AvailableToTrainee)
+	}
+	if search.DepartmentIDs != nil {
+		query = query.Where("departments.id IN (?)", search.DepartmentIDs)
+	}
+	if search.AvailableAt != nil {
+		subQuery := db.Table("equipment_in_invocation").
+			Select("1").
+			Joins("equipment_invocation ON equipment_invocation.id = equipment_in_invocation.invocation_id").
+			Where("equipment_in_invocation.equipment_id = equipment.id").
+			Where("? BETWEEN equipment_invocation.start_time AND equipment_invocation.end_time", search.AvailableAt)
+
+		query = query.Where("NOT EXISTS (?)", subQuery)
+	}
+
+	if err := query.Find(&equipment).Error; err != nil {
+		return nil, errs.NewRepositoryError("search", err)
+	}
+
+	return equipment, nil
 }
