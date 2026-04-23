@@ -107,6 +107,11 @@ func (s *UpdateEquipmentSuite) TestUpdateEquipment_WithDepartments() {
 		s.equipmentRepo.On("Get", mock.Anything, eqID, mock.Anything).Return(eq, nil)
 		s.equipmentRepo.On("Update", mock.Anything, mock.AnythingOfType("*domain.Equipment")).Return(nil)
 		s.depAssocService.On("UpdateAssociations", mock.Anything, eq, newDeps).Return(nil)
+		deps := make([]*domain.Department, 0, len(newDeps))
+		for _, depID := range newDeps {
+			deps = append(deps, &domain.Department{ID: depID})
+		}
+		eq.Departments = deps
 		err := fn(ctx)
 		s.NoError(err)
 	})
@@ -115,7 +120,6 @@ func (s *UpdateEquipmentSuite) TestUpdateEquipment_WithDepartments() {
 
 	s.NoError(err)
 	s.Equal(*req.Name, result.Name)
-	// s.Equal(req.)
 	resDeps := make([]uuid.UUID, 0, len(result.Departments))
 	for _, dep := range result.Departments {
 		resDeps = append(resDeps, dep.ID)
