@@ -2,18 +2,19 @@ package equipmentservice
 
 import (
 	"context"
+	"slices"
+
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 
 	"github.com/google/uuid"
 )
 
 type UpdateEquipmentService interface {
-	UpdateEquipment(ctx context.Context, req UpdateEquipmentRequest) (*domain.Equipment, error)
+	UpdateEquipment(ctx context.Context, req *UpdateEquipmentRequest) (*domain.Equipment, error)
 }
 
 type UpdateEquipmentRequest struct {
@@ -50,7 +51,7 @@ func NewUpdateEquipmentService(
 	}
 }
 
-func (s *updateEquipmentService) UpdateEquipment(ctx context.Context, req UpdateEquipmentRequest) (*domain.Equipment, error) {
+func (s *updateEquipmentService) UpdateEquipment(ctx context.Context, req *UpdateEquipmentRequest) (*domain.Equipment, error) {
 	if err := validate.ValidateStruct(req); err != nil {
 		return nil, errs.NewValidationError("UpdateEquipmentRequest", err.Error())
 	}
@@ -66,7 +67,6 @@ func (s *updateEquipmentService) UpdateEquipment(ctx context.Context, req Update
 
 	var equipment *domain.Equipment
 	err = s.txManager.WithinTx(ctx, func(ctx context.Context) error {
-
 		equipment, err = s.equipmentRepository.Get(ctx, req.ID, domain.EquipmentWithDepartments())
 		if err != nil {
 			return err

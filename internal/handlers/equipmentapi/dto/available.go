@@ -1,9 +1,10 @@
 package dto
 
 import (
+	"time"
+
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain/errs"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -57,7 +58,7 @@ type ShortInvocationItem struct {
 	Status       string `json:"status"`
 }
 
-func SerializeAvailabilityEquipmentResponse(c *gin.Context, resp equipmentservice.EquipmentAvailabilityResponse) any {
+func SerializeAvailabilityEquipmentResponse(_ *gin.Context, resp equipmentservice.EquipmentAvailabilityResponse) any {
 	conflictingInvocations := make([]ShortInvocationItem, 0, len(resp.ConflictingInvocations))
 	if resp.ConflictingInvocations != nil {
 		for _, i := range resp.ConflictingInvocations {

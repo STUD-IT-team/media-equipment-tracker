@@ -2,6 +2,7 @@ package equipmentapi
 
 import (
 	"errors"
+
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/handlers/equipmentapi/dto"
@@ -34,21 +35,21 @@ func (r *EquipmentRouter) Search(c *gin.Context) {
 
 	search, err := dto.DeserializeSearchEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("query", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("query", err.Error())))
 		return
 	}
 
-	items, err := r.service.Search(ctx, search)
+	items, err := r.service.Search(ctx, &search)
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -61,23 +62,23 @@ func (r *EquipmentRouter) Create(c *gin.Context) {
 
 	req, err := dto.DeserializeCreateEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("CreateEquipmentRequest", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("CreateEquipmentRequest", err.Error())))
 		return
 	}
 
-	equipment, err := r.service.CreateEquipment(ctx, req)
+	equipment, err := r.service.CreateEquipment(ctx, &req)
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsEntityAlreadyExistsError(err):
-			c.JSON(409, ginerror.ErrJsonBody(err))
+			c.JSON(409, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -90,23 +91,23 @@ func (r *EquipmentRouter) Update(c *gin.Context) {
 
 	req, err := dto.DeserializeUpdateEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("UpdateEquipmentRequest", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("UpdateEquipmentRequest", err.Error())))
 		return
 	}
 
-	equipment, err := r.service.UpdateEquipment(ctx, req)
+	equipment, err := r.service.UpdateEquipment(ctx, &req)
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsEntityAlreadyExistsError(err):
-			c.JSON(409, ginerror.ErrJsonBody(err))
+			c.JSON(409, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -119,7 +120,7 @@ func (r *EquipmentRouter) Delete(c *gin.Context) {
 
 	id, err := dto.DeserializeDeleteEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("id", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("id", err.Error())))
 		return
 	}
 
@@ -127,15 +128,15 @@ func (r *EquipmentRouter) Delete(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errors.Is(err, equipmentservice.ErrEquipmentHasInvocations):
-			c.JSON(409, ginerror.ErrJsonBody(err))
+			c.JSON(409, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -148,7 +149,7 @@ func (r *EquipmentRouter) Get(c *gin.Context) {
 
 	id, err := dto.DeserializeGetEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("id", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("id", err.Error())))
 		return
 	}
 
@@ -156,13 +157,13 @@ func (r *EquipmentRouter) Get(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -175,7 +176,7 @@ func (r *EquipmentRouter) GetByInventoryNumber(c *gin.Context) {
 
 	inv, err := dto.DeserializeGetEquipmentByInventoryNumberRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("inv", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("inv", err.Error())))
 		return
 	}
 
@@ -183,13 +184,13 @@ func (r *EquipmentRouter) GetByInventoryNumber(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
@@ -202,7 +203,7 @@ func (r *EquipmentRouter) Availability(c *gin.Context) {
 
 	req, err := dto.DeserializeAvailabilityEquipmentRequest(c)
 	if err != nil {
-		c.JSON(400, ginerror.ErrJsonBody(errs.NewValidationError("AvailabilityEquipmentRequest", err.Error())))
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("AvailabilityEquipmentRequest", err.Error())))
 		return
 	}
 
@@ -210,13 +211,13 @@ func (r *EquipmentRouter) Availability(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJsonBody(err))
+			c.JSON(404, ginerror.ErrJSONBody(err))
 		case errs.IsValidationError(err):
-			c.JSON(400, ginerror.ErrJsonBody(err))
+			c.JSON(400, ginerror.ErrJSONBody(err))
 		case errs.IsRoleAuthError(err):
-			c.JSON(403, ginerror.ErrJsonBody(err))
+			c.JSON(403, ginerror.ErrJSONBody(err))
 		default:
-			c.JSON(500, ginerror.ErrJsonBody(err))
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}

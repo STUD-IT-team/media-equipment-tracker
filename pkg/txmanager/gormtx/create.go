@@ -108,12 +108,6 @@ func New(opts ...GormTxOption) (*DBGetter, *GormTxManager, error) {
 
 	connString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		config.host, config.port, config.user, config.password, config.database, tls)
-	// if config.maxConns != 0 {
-	// 	connString += fmt.Sprintf(" max_conns=%d", config.maxConns)
-	// }
-	// if config.connLifeTime != "" {
-	// 	connString += fmt.Sprintf(" conn_lifetime=%s", config.connLifeTime)
-	// }
 
 	db, err := gorm.Open(postgres.Open(connString), &gorm.Config{})
 	if err != nil {

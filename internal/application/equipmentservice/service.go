@@ -2,12 +2,13 @@ package equipmentservice
 
 import (
 	"context"
+	"slices"
+
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/application/invocationservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -86,5 +87,4 @@ func (s *equipmentService) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
-
 }

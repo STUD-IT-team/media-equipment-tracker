@@ -2,18 +2,19 @@ package invocationservice
 
 import (
 	"context"
-	"media-equipment-tracker/internal/domain"
 	"time"
+
+	"media-equipment-tracker/internal/domain"
 
 	"github.com/google/uuid"
 )
 
 type SearchInvocationRepository interface {
-	Search(ctx context.Context, search SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error)
+	Search(ctx context.Context, search *SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error)
 }
 
 type SearchInvocationService interface {
-	Search(ctx context.Context, search SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error)
+	Search(ctx context.Context, search *SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error)
 }
 
 type searchInvocationService struct {
@@ -53,7 +54,7 @@ func (r *SearchInvocationRequest) nilize() {
 	}
 }
 
-func (s *searchInvocationService) Search(ctx context.Context, search SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (s *searchInvocationService) Search(ctx context.Context, search *SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	search.nilize()
 
 	if search.Statuses == nil {

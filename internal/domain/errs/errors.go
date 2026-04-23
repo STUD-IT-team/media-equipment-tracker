@@ -3,8 +3,9 @@ package errs
 import (
 	"errors"
 	"fmt"
-	"media-equipment-tracker/internal/domain"
 	"strings"
+
+	"media-equipment-tracker/internal/domain"
 )
 
 type EntityNotFoundError struct {
@@ -102,7 +103,7 @@ func (e RoleAuthError) Error() string {
 	return fmt.Sprintf("insufficient role authorization. required roles: %v, actual roles: %v", e.RequiredRoles, e.ActualRoles)
 }
 
-func NewRoleAuthError(requiredRoles []domain.RoleAuth, actualRoles []domain.RoleAuth) RoleAuthError {
+func NewRoleAuthError(requiredRoles, actualRoles []domain.RoleAuth) RoleAuthError {
 	return RoleAuthError{RequiredRoles: requiredRoles, ActualRoles: actualRoles}
 }
 

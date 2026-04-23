@@ -53,7 +53,7 @@ func DeserializeCreateEquipmentRequest(c *gin.Context) (equipmentservice.CreateE
 	}, nil
 }
 
-func SerializeCreateEquipmentResponse(c *gin.Context, equipment *domain.Equipment) any {
+func SerializeCreateEquipmentResponse(_ *gin.Context, equipment *domain.Equipment) any {
 	return CreateEquipmentResponse{
 		ShortEquipmentItem: FromEquipment(equipment),
 	}

@@ -121,7 +121,7 @@ func (r *PostgresEquipmentInvocationRepository) Delete(ctx context.Context, id u
 	return nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req invocationservice.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req *invocationservice.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	db, err := r.db.GetDB(ctx)
 	if err != nil {
 		return nil, errs.NewRepositoryError("search", err)

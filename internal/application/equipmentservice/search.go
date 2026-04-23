@@ -2,19 +2,20 @@ package equipmentservice
 
 import (
 	"context"
+	"time"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
-	"time"
 
 	"github.com/google/uuid"
 )
 
 type SearchEquipmentRepository interface {
-	Search(ctx context.Context, search SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error)
+	Search(ctx context.Context, search *SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error)
 }
 
 type SearchEquipmentService interface {
-	Search(ctx context.Context, search SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error)
+	Search(ctx context.Context, search *SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error)
 }
 
 type searchEquipmentService struct {
@@ -51,7 +52,7 @@ func (r *SearchEquipmentRequest) nilize() {
 	}
 }
 
-func (s *searchEquipmentService) Search(ctx context.Context, search SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (s *searchEquipmentService) Search(ctx context.Context, search *SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	search.nilize()
 
 	if search.AvailableAt != nil && search.AvailableAt.Before(time.Now()) {

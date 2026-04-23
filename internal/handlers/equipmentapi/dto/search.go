@@ -1,9 +1,10 @@
 package dto
 
 import (
+	"time"
+
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -71,7 +72,7 @@ type SearchEquipmentResponse struct {
 	Items []ShortEquipmentItem `json:"items"`
 }
 
-func SerializeSearchEquipmentResponse(c *gin.Context, items []*domain.Equipment) any {
+func SerializeSearchEquipmentResponse(_ *gin.Context, items []*domain.Equipment) any {
 	response := SearchEquipmentResponse{
 		Items: make([]ShortEquipmentItem, 0, len(items)),
 	}

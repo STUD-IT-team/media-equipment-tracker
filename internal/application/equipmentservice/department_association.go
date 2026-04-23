@@ -3,15 +3,16 @@ package equipmentservice
 import (
 	"context"
 	"fmt"
+	"slices"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 
 	"github.com/google/uuid"
 )
 
 type DepartmentAssociationService interface {
-	UpdateAssociations(ctx context.Context, equipment *domain.Equipment, newDepIds []uuid.UUID) error
+	UpdateAssociations(ctx context.Context, equipment *domain.Equipment, newDepIDs []uuid.UUID) error
 }
 
 type departmentAssociationService struct {
@@ -29,8 +30,8 @@ func NewDepartmentAssociationService(
 	}
 }
 
-func (s *departmentAssociationService) UpdateAssociations(ctx context.Context, equipment *domain.Equipment, newDepIds []uuid.UUID) error {
-	if equipment == nil || newDepIds == nil {
+func (s *departmentAssociationService) UpdateAssociations(ctx context.Context, equipment *domain.Equipment, newDepIDs []uuid.UUID) error {
+	if equipment == nil || newDepIDs == nil {
 		return fmt.Errorf("invalid arguments")
 	}
 
@@ -40,17 +41,17 @@ func (s *departmentAssociationService) UpdateAssociations(ctx context.Context, e
 	}
 
 	toAdd := make(map[uuid.UUID]struct{})
-	for _, newId := range newDepIds {
-		if _, ok := toDelete[newId]; !ok {
-			toAdd[newId] = struct{}{}
+	for _, newID := range newDepIDs {
+		if _, ok := toDelete[newID]; !ok {
+			toAdd[newID] = struct{}{}
 		} else {
-			delete(toDelete, newId)
+			delete(toDelete, newID)
 		}
 	}
 
 	err := s.txManager.WithinTx(ctx, func(ctx context.Context) error {
-		for depId := range toDelete {
-			department, err := s.departmentRepository.Get(ctx, depId, domain.DepartmentWithEquipment())
+		for depID := range toDelete {
+			department, err := s.departmentRepository.Get(ctx, depID, domain.DepartmentWithEquipment())
 			if err != nil {
 				return err
 			}
@@ -61,12 +62,12 @@ func (s *departmentAssociationService) UpdateAssociations(ctx context.Context, e
 				return err
 			}
 			equipment.Departments = slices.DeleteFunc(equipment.Departments, func(d *domain.Department) bool {
-				return d.ID == depId
+				return d.ID == depID
 			})
 		}
 
-		for depId := range toAdd {
-			department, err := s.departmentRepository.Get(ctx, depId, domain.DepartmentWithEquipment())
+		for depID := range toAdd {
+			department, err := s.departmentRepository.Get(ctx, depID, domain.DepartmentWithEquipment())
 			if err != nil {
 				return err
 			}

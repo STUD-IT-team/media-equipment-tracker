@@ -43,13 +43,13 @@ func DeserializeUpdateEquipmentRequest(c *gin.Context) (equipmentservice.UpdateE
 		status = &s
 	}
 
-	departmentIds := make([]uuid.UUID, 0, len(body.Departments))
-	for _, departmentId := range body.Departments {
-		departmentId, err := uuid.Parse(departmentId)
+	departmentIDs := make([]uuid.UUID, 0, len(body.Departments))
+	for _, departmentID := range body.Departments {
+		departmentID, err := uuid.Parse(departmentID)
 		if err != nil {
 			return equipmentservice.UpdateEquipmentRequest{}, err
 		}
-		departmentIds = append(departmentIds, departmentId)
+		departmentIDs = append(departmentIDs, departmentID)
 	}
 
 	return equipmentservice.UpdateEquipmentRequest{
@@ -60,7 +60,7 @@ func DeserializeUpdateEquipmentRequest(c *gin.Context) (equipmentservice.UpdateE
 		Category:           body.Category,
 		AvailableToTrainee: body.AvailableToTrainee,
 		Status:             status,
-		Departments:        departmentIds,
+		Departments:        departmentIDs,
 	}, nil
 }
 
@@ -74,7 +74,7 @@ type UpdateEquipmentResponse struct {
 	Status             string `json:"status"`
 }
 
-func SerializeUpdateEquipmentResponse(c *gin.Context, equipment *domain.Equipment) any {
+func SerializeUpdateEquipmentResponse(_ *gin.Context, equipment *domain.Equipment) any {
 	return UpdateEquipmentResponse{
 		ID:                 equipment.ID.String(),
 		InventoryNumber:    equipment.InventoryNumber,

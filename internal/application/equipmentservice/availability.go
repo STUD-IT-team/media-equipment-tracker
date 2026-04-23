@@ -2,12 +2,13 @@ package equipmentservice
 
 import (
 	"context"
+	"time"
+
 	"media-equipment-tracker/internal/application/invocationservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
 	"media-equipment-tracker/pkg/txmanager"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -68,7 +69,7 @@ func (s *availabilityEquipmentService) Availability(ctx context.Context, req Equ
 			return nil
 		}
 
-		invocations, err = s.searchRepository.Search(ctx, invocationservice.SearchInvocationRequest{
+		invocations, err = s.searchRepository.Search(ctx, &invocationservice.SearchInvocationRequest{
 			EquipmentIDs: []uuid.UUID{equipment.ID},
 			StartTime:    &req.StartTime,
 			EndTime:      &req.EndTime,

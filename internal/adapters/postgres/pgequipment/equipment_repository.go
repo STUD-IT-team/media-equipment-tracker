@@ -128,7 +128,7 @@ func (r *PostgresEquipmentRepository) Delete(ctx context.Context, id uuid.UUID) 
 	return nil
 }
 
-func (r *PostgresEquipmentRepository) Search(ctx context.Context, search equipmentservice.SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
+func (r *PostgresEquipmentRepository) Search(ctx context.Context, search *equipmentservice.SearchEquipmentRequest, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	equipment := make([]*domain.Equipment, 0)
 	db, err := r.db.GetDB(ctx)
 	if err != nil {
@@ -155,7 +155,6 @@ func (r *PostgresEquipmentRepository) Search(ctx context.Context, search equipme
 			Select("COUNT(DISTINCT department_id)")
 
 		query = query.Where("(?) = ?", subQuery, len(search.DepartmentIDs))
-
 	}
 	if search.AvailableAt != nil {
 		subQuery := db.Table("equipment_in_invocation").

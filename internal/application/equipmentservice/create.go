@@ -2,12 +2,13 @@ package equipmentservice
 
 import (
 	"context"
+	"slices"
+
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -23,7 +24,7 @@ type CreateEquipmentRequest struct {
 }
 
 type CreateEquipmentService interface {
-	CreateEquipment(ctx context.Context, req CreateEquipmentRequest) (*domain.Equipment, error)
+	CreateEquipment(ctx context.Context, req *CreateEquipmentRequest) (*domain.Equipment, error)
 }
 
 type createEquipmentService struct {
@@ -49,7 +50,7 @@ func NewCreateEquipmentService(
 	}
 }
 
-func (s *createEquipmentService) CreateEquipment(ctx context.Context, req CreateEquipmentRequest) (*domain.Equipment, error) {
+func (s *createEquipmentService) CreateEquipment(ctx context.Context, req *CreateEquipmentRequest) (*domain.Equipment, error) {
 	if err := validate.ValidateStruct(req); err != nil {
 		return nil, errs.NewValidationError("CreateEquipmentRequest", err.Error())
 	}
@@ -73,9 +74,9 @@ func (s *createEquipmentService) CreateEquipment(ctx context.Context, req Create
 		Departments:        make([]*domain.Department, 0, len(req.Departments)),
 	}
 
-	depIds := req.Departments
-	if depIds == nil {
-		depIds = []uuid.UUID{}
+	depIDs := req.Departments
+	if depIDs == nil {
+		depIDs = []uuid.UUID{}
 	}
 
 	err = s.txManager.WithinTx(ctx, func(ctx context.Context) error {
@@ -83,7 +84,7 @@ func (s *createEquipmentService) CreateEquipment(ctx context.Context, req Create
 			return err
 		}
 
-		err = s.depAssocService.UpdateAssociations(ctx, equipment, depIds)
+		err = s.depAssocService.UpdateAssociations(ctx, equipment, depIDs)
 		if err != nil {
 			return err
 		}

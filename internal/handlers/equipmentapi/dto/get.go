@@ -2,8 +2,9 @@ package dto
 
 import (
 	"fmt"
-	"media-equipment-tracker/internal/domain"
 	"time"
+
+	"media-equipment-tracker/internal/domain"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -50,7 +51,7 @@ type getEquipmentInvocation struct {
 	EndTime   string    `json:"end_time"`
 }
 
-func SerializeGetEquipmentResponse(c *gin.Context, equipment *domain.Equipment) any {
+func SerializeGetEquipmentResponse(_ *gin.Context, equipment *domain.Equipment) any {
 	departments := make([]getEquipmentDepartment, 0, len(equipment.Departments))
 	if equipment.Departments != nil {
 		for _, d := range equipment.Departments {
