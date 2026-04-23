@@ -94,6 +94,7 @@ func (r *PostgresDepartmentRepository) Update(ctx context.Context, department *d
 		if err := tx.Omit(r.upsertOmitFields()...).Save(department).Error; err != nil {
 			return errs.NewRepositoryError("update", err)
 		}
+
 		// Нужно, так как Save может только добавлять связи, но не удалять существующие в БД
 		if department.Equipment != nil {
 			if err := tx.Model(department).Association("Equipment").Replace(department.Equipment); err != nil {

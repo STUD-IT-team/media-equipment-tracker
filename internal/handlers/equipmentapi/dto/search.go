@@ -68,34 +68,16 @@ func DeserializeSearchEquipmentRequest(c *gin.Context) (equipmentservice.SearchE
 }
 
 type SearchEquipmentResponse struct {
-	Items []SearchEquipmentItem
-}
-
-type SearchEquipmentItem struct {
-	ID                 string `json:"id"`
-	InventoryNumber    string `json:"inventory_number"`
-	Name               string `json:"name"`
-	ShortName          string `json:"short_name"`
-	Category           string `json:"category"`
-	AvailableToTrainee bool   `json:"available_to_trainee"`
-	Status             string `json:"status"`
+	Items []ShortEquipmentItem `json:"items"`
 }
 
 func SerializeSearchEquipmentResponse(c *gin.Context, items []*domain.Equipment) any {
 	response := SearchEquipmentResponse{
-		Items: make([]SearchEquipmentItem, 0, len(items)),
+		Items: make([]ShortEquipmentItem, 0, len(items)),
 	}
 
 	for _, item := range items {
-		response.Items = append(response.Items, SearchEquipmentItem{
-			ID:                 item.ID.String(),
-			InventoryNumber:    item.InventoryNumber,
-			Name:               item.Name,
-			ShortName:          item.ShortName,
-			Category:           item.Category,
-			AvailableToTrainee: item.AvailableToTrainee,
-			Status:             string(item.Status),
-		})
+		response.Items = append(response.Items, FromEquipment(item))
 	}
 
 	return response

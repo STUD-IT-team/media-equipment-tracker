@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"media-equipment-tracker/internal/adapters/postgres/pgutils"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
@@ -61,6 +62,18 @@ func (r *PostgresEquipmentRepository) GetUnoccupied(ctx context.Context, with ..
 	return equipment, nil
 }
 
+func (r *PostgresEquipmentRepository) GetByInventoryNumber(ctx context.Context, inventoryNumber string, with ...domain.EquipmentOption) (*domain.Equipment, error) {
+	var equipment *domain.Equipment
+	query := r.applyOptions(ctx, with)
+	if err := query.Where("inventory_number = ?", inventoryNumber).First(&equipment).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.NewEntityNotFoundError("Equipment", inventoryNumber)
+		}
+		return nil, errs.NewRepositoryError("get_by_inventory_number", err)
+	}
+	return equipment, nil
+}
+
 func (r *PostgresEquipmentRepository) List(ctx context.Context, with ...domain.EquipmentOption) ([]*domain.Equipment, error) {
 	var equipment []*domain.Equipment
 	query := r.applyOptions(ctx, with)
@@ -83,7 +96,11 @@ func (r *PostgresEquipmentRepository) Create(ctx context.Context, equipment *dom
 	if err != nil {
 		return errs.NewRepositoryError("create", err)
 	}
+
 	if err := db.Omit(clause.Associations).Create(equipment).Error; err != nil {
+		if pgutils.IsUniqueViolationError(err) {
+			return errs.NewEntityAlreadyExistsError("Equipment", equipment)
+		}
 		return errs.NewRepositoryError("create", err)
 	}
 	return nil
@@ -132,7 +149,13 @@ func (r *PostgresEquipmentRepository) Search(ctx context.Context, search equipme
 		query = query.Where("available_to_trainee = ?", *search.AvailableToTrainee)
 	}
 	if search.DepartmentIDs != nil {
-		query = query.Where("departments.id IN (?)", search.DepartmentIDs)
+		subQuery := db.Table("equipment_department").
+			Where("equipment_id = equipment.id").
+			Where("department_id IN (?)", search.DepartmentIDs).
+			Select("COUNT(DISTINCT department_id)")
+
+		query = query.Where("(?) = ?", subQuery, len(search.DepartmentIDs))
+
 	}
 	if search.AvailableAt != nil {
 		subQuery := db.Table("equipment_in_invocation").

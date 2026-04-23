@@ -12,7 +12,9 @@ import (
 
 	"media-equipment-tracker/internal/adapters/bcrypthasher"
 	"media-equipment-tracker/internal/adapters/inmem"
+	"media-equipment-tracker/internal/adapters/postgres/pgdepartment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
+	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
@@ -29,7 +31,7 @@ import (
 func main() {
 	engine := gin.New()
 
-	dbGetter, _, err := gormtx.New(
+	dbGetter, txManager, err := gormtx.New(
 		gormtx.WithHost(config.PostgresHost),
 		gormtx.WithPort(uint16(config.PostgresPort)),
 		gormtx.WithUser(config.PostgresUser),
@@ -43,6 +45,8 @@ func main() {
 	// Repository
 	userRepo := pguser.NewPostgresUserRepository(dbGetter)
 	equipmentRepo := pgequipment.NewPostgresEquipmentRepository(dbGetter)
+	departmentRepo := pgdepartment.NewPostgresDepartmentRepository(dbGetter)
+	invocationRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
@@ -61,7 +65,7 @@ func main() {
 	}
 
 	// Services
-	equipmentService := equipmentservice.NewEquipmentService(equipmentRepo, equipmentRepo)
+	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
