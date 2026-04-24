@@ -37,7 +37,7 @@ type SearchInvocationRequest struct {
 }
 
 func (r *SearchInvocationRequest) nilize() {
-	if r.SearchString != nil && r.SearchString == nil {
+	if r.SearchString != nil && r.SearchString == "" {
 		r.SearchString = nil
 	}
 	if r.Statuses != nil && len(r.Statuses) == 0 {
