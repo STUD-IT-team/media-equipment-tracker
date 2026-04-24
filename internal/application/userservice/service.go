@@ -9,11 +9,11 @@ import (
 )
 
 type UserService interface {
-	GetById(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error)
+	GetByID(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error)
 	GetCurrent(ctx context.Context, with ...domain.UserOption) (*domain.User, error)
 	GetAll(ctx context.Context, with ...domain.UserOption) ([]*domain.User, error)
 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
-	DeleteById(ctx context.Context, id uuid.UUID) error
+	DeleteByID(ctx context.Context, id uuid.UUID) error
 }
 
 type userService struct {
@@ -29,7 +29,7 @@ func NewUserService(userRep domain.UserRepository, authz authzservice.AuthZ) (Us
 	return service, nil
 }
 
-func (s *userService) GetById(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error) {
+func (s *userService) GetByID(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error) {
 	user, err := s.userRep.Get(ctx, id, with...)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (s *userService) GetCurrent(ctx context.Context, with ...domain.UserOption)
 	if err != nil {
 		return nil, err
 	}
-	return s.GetById(ctx, tokenPayload.UserID, with...)
+	return s.GetByID(ctx, tokenPayload.UserID, with...)
 }
 
 func (s *userService) GetAll(ctx context.Context, with ...domain.UserOption) ([]*domain.User, error) {
@@ -64,6 +64,6 @@ func (s *userService) Update(ctx context.Context, user *domain.User) (*domain.Us
 	return updatedUser, nil
 }
 
-func (s *userService) DeleteById(ctx context.Context, id uuid.UUID) error {
+func (s *userService) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	return s.userRep.Delete(ctx, id)
 }

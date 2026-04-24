@@ -29,7 +29,7 @@ type OrganizationBriefResponse struct {
 }
 
 type UserDepartmentResponse struct {
-	DepartmentID   uuid.UUID `json:"departmentId"`
+	DepartmentID   uuid.UUID `json:"departmentID"`
 	DepartmentName string    `json:"departmentName"`
 	Role           string    `json:"role"` // trainee, activist
 }
@@ -97,14 +97,14 @@ type CreateUserRequest struct {
 type EquipmentInvocationResponse struct {
 	ID                  uuid.UUID                       `json:"id"`
 	EventName           string                          `json:"eventName"`
-	UserID              uuid.UUID                       `json:"userId"`
+	UserID              uuid.UUID                       `json:"userID"`
 	UserName            string                          `json:"userName,omitempty"`
 	UserEmail           string                          `json:"userEmail,omitempty"`
-	AdminID             *uuid.UUID                      `json:"adminId,omitempty"`
+	AdminID             *uuid.UUID                      `json:"adminID,omitempty"`
 	AdminName           string                          `json:"adminName,omitempty"`
-	OrganizationID      *uuid.UUID                      `json:"organizationId,omitempty"`
+	OrganizationID      *uuid.UUID                      `json:"organizationID,omitempty"`
 	OrganizationName    string                          `json:"organizationName,omitempty"`
-	DepartmentID        *uuid.UUID                      `json:"departmentId,omitempty"`
+	DepartmentID        *uuid.UUID                      `json:"departmentID,omitempty"`
 	DepartmentName      string                          `json:"departmentName,omitempty"`
 	Status              string                          `json:"status"`
 	StartTime           time.Time                       `json:"startTime"`
@@ -117,8 +117,8 @@ type EquipmentInvocationResponse struct {
 
 // EquipmentInInvocationResponse - ответ с информацией о оборудовании в заявке
 type EquipmentInInvocationResponse struct {
-	InvocationID uuid.UUID `json:"invocationId"`
-	EquipmentID  uuid.UUID `json:"equipmentId"`
+	InvocationID uuid.UUID `json:"invocationID"`
+	EquipmentID  uuid.UUID `json:"equipmentID"`
 	Status       string    `json:"status"` // pending, issued, returned
 }
 
@@ -127,14 +127,14 @@ type StudioInvocationResponse struct {
 	ID                  uuid.UUID  `json:"id"`
 	EventName           string     `json:"eventName"`
 	ShootingDescription string     `json:"shootingDescription"`
-	UserID              uuid.UUID  `json:"userId"`
+	UserID              uuid.UUID  `json:"userID"`
 	UserName            string     `json:"userName,omitempty"`
 	UserEmail           string     `json:"userEmail,omitempty"`
-	AdminID             *uuid.UUID `json:"adminId,omitempty"`
+	AdminID             *uuid.UUID `json:"adminID,omitempty"`
 	AdminName           string     `json:"adminName,omitempty"`
-	OrganizationID      *uuid.UUID `json:"organizationId,omitempty"`
+	OrganizationID      *uuid.UUID `json:"organizationID,omitempty"`
 	OrganizationName    string     `json:"organizationName,omitempty"`
-	DepartmentID        *uuid.UUID `json:"departmentId,omitempty"`
+	DepartmentID        *uuid.UUID `json:"departmentID,omitempty"`
 	DepartmentName      string     `json:"departmentName,omitempty"`
 	Status              string     `json:"status"`
 	StartTime           time.Time  `json:"startTime"`
