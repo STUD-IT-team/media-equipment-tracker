@@ -811,6 +811,27 @@ paths:
           description: Оборудование не найдено
         '409':
           description: Невозможно удалить - есть история заявок
+  
+  /equipment/inventory/{inv}:
+    get:
+      tags: [Equipment]
+      summary: Получить оборудование по инвентарному номеру
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: inv
+          in: path
+          required: true
+          schema:
+            type: string
+            format: inv
+      responses:
+        '200':
+          description: Информация об оборудовании
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentDetailResponse'
 
   /equipment/{id}/availability:
     get:
@@ -2273,11 +2294,6 @@ components:
           type: boolean
         status:
           $ref: '#/components/schemas/EquipmentStatus'
-        qr_id:
-          type: string
-        created_at:
-          type: string
-          format: date-time
 
     EquipmentDetailResponse:
       allOf:
@@ -2297,8 +2313,9 @@ components:
                   format: uuid
                 event_name:
                   type: string
-                user_name:
+                user_id:
                   type: string
+                  format: uuid
                 start_time:
                   type: string
                   format: date-time

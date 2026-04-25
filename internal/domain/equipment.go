@@ -75,6 +75,7 @@ func EquipmentWithEquipmentInInvocations() EquipmentOption {
 
 type EquipmentRepository interface {
 	Get(ctx context.Context, id uuid.UUID, with ...EquipmentOption) (*Equipment, error)
+	GetByInventoryNumber(ctx context.Context, inventoryNumber string, with ...EquipmentOption) (*Equipment, error)
 	GetUnoccupied(ctx context.Context, with ...EquipmentOption) ([]*Equipment, error)
 	List(ctx context.Context, with ...EquipmentOption) ([]*Equipment, error)
 	Reload(ctx context.Context, equipment *Equipment, with ...EquipmentOption) error

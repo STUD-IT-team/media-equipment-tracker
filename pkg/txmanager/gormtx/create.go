@@ -106,8 +106,8 @@ func New(opts ...GormTxOption) (*DBGetter, *GormTxManager, error) {
 		tls = "disable"
 	}
 
-	connString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s pool_max_conns=%d pool_max_conn_lifetime=%s",
-		config.host, config.port, config.user, config.password, config.database, tls, config.maxConns, config.connLifeTime)
+	connString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		config.host, config.port, config.user, config.password, config.database, tls)
 
 	db, err := gorm.Open(postgres.Open(connString), &gorm.Config{})
 	if err != nil {
