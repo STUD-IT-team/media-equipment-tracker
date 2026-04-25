@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
@@ -19,7 +19,7 @@ type AvailabilityEquipmentService interface {
 
 type availabilityEquipmentService struct {
 	equipmentRepository domain.EquipmentRepository
-	searchRepository    invocationservice.SearchInvocationRepository
+	searchRepository    invocationsearch.SearchInvocationRepository
 	txManager           txmanager.TxManager
 }
 
@@ -37,7 +37,7 @@ type EquipmentAvailabilityResponse struct {
 
 func NewAvailabilityEquipmentService(
 	equipmentRepository domain.EquipmentRepository,
-	searchRepository invocationservice.SearchInvocationRepository,
+	searchRepository invocationsearch.SearchInvocationRepository,
 	txManager txmanager.TxManager,
 ) AvailabilityEquipmentService {
 	return &availabilityEquipmentService{
@@ -69,7 +69,7 @@ func (s *availabilityEquipmentService) Availability(ctx context.Context, req Equ
 			return nil
 		}
 
-		invocations, err = s.searchRepository.Search(ctx, &invocationservice.SearchInvocationRequest{
+		invocations, err = s.searchRepository.Search(ctx, &invocationsearch.SearchInvocationRequest{
 			EquipmentIDs: []uuid.UUID{equipment.ID},
 			StartTime:    &req.StartTime,
 			EndTime:      &req.EndTime,

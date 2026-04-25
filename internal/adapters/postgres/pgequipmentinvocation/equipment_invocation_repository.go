@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -121,7 +121,7 @@ func (r *PostgresEquipmentInvocationRepository) Delete(ctx context.Context, id u
 	return nil
 }
 
-func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req *invocationservice.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req *invocationsearch.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	db, err := r.db.GetDB(ctx)
 	if err != nil {
 		return nil, errs.NewRepositoryError("search", err)
@@ -152,6 +152,14 @@ func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req 
 
 	if req.Statuses != nil {
 		query = query.Where("status IN (?)", req.Statuses)
+	}
+
+	if req.AdminID != nil {
+		query = query.Where("admin_id = ?", *req.AdminID)
+	}
+
+	if req.UserID != nil {
+		query = query.Where("user_id = ?", *req.UserID)
 	}
 
 	if err := query.Find(&invocations).Error; err != nil {

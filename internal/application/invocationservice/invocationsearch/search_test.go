@@ -1,6 +1,6 @@
 //go:build unit
 
-package invocationservice_test
+package invocationsearch_test
 
 import (
 	"context"
@@ -11,24 +11,24 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 )
 
 type InvocationSuite struct {
 	suite.Suite
 
-	svc        invocationservice.SearchInvocationService
+	svc        invocationsearch.SearchInvocationService
 	searchRepo *SearchInvocationRepoMock
 }
 
 func (s *InvocationSuite) SetupTest() {
 	s.searchRepo = new(SearchInvocationRepoMock)
-	s.svc = invocationservice.NewSearchInvocationService(s.searchRepo)
+	s.svc = invocationsearch.NewSearchInvocationService(s.searchRepo)
 }
 
 func (s *InvocationSuite) TestSearch_Success() {
-	req := &invocationservice.SearchInvocationRequest{
+	req := &invocationsearch.SearchInvocationRequest{
 		SearchString: stringPtr("test"),
 		Statuses:     []domain.EquipmentInvocationStatus{domain.InvocationCreated},
 		EquipmentIDs: []uuid.UUID{uuid.New()},
@@ -46,12 +46,12 @@ func (s *InvocationSuite) TestSearch_Success() {
 }
 
 func (s *InvocationSuite) TestSearch_NilizeAndSetStatuses() {
-	req := &invocationservice.SearchInvocationRequest{
+	req := &invocationsearch.SearchInvocationRequest{
 		Statuses: nil, // should set default statuses
 	}
 	invocations := []*domain.EquipmentInvocation{}
 
-	s.searchRepo.On("Search", mock.Anything, mock.MatchedBy(func(r *invocationservice.SearchInvocationRequest) bool {
+	s.searchRepo.On("Search", mock.Anything, mock.MatchedBy(func(r *invocationsearch.SearchInvocationRequest) bool {
 		return r.Statuses != nil && len(r.Statuses) > 0
 	}), mock.Anything).Return(invocations, nil)
 
@@ -69,7 +69,7 @@ func stringPtr(s string) *string {
 // Mock
 type SearchInvocationRepoMock struct{ mock.Mock }
 
-func (m *SearchInvocationRepoMock) Search(ctx context.Context, search *invocationservice.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (m *SearchInvocationRepoMock) Search(ctx context.Context, search *invocationsearch.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	args := m.Called(ctx, search, with)
 	return args.Get(0).([]*domain.EquipmentInvocation), args.Error(1)
 }

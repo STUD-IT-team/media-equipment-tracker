@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	authzservice "media-equipment-tracker/internal/application/authz_service"
-	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager"
@@ -39,7 +39,7 @@ func NewEquipmentService(
 	auther authzservice.AuthZ,
 	equipmentRepository domain.EquipmentRepository,
 	searchRepository SearchEquipmentRepository,
-	searchInvocationRepository invocationservice.SearchInvocationRepository,
+	searchInvocationRepository invocationsearch.SearchInvocationRepository,
 	departmentRepository domain.DepartmentRepository,
 	txManager txmanager.TxManager,
 ) EquipmentService {
