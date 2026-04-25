@@ -47,7 +47,7 @@ func (r *SearchEquipmentRequest) nilize() {
 	if r.DepartmentIDs != nil && len(r.DepartmentIDs) == 0 {
 		r.DepartmentIDs = nil
 	}
-	if r.SearchString != nil && r.SearchString == "" {
+	if r.SearchString != nil && *r.SearchString == "" {
 		r.SearchString = nil
 	}
 }

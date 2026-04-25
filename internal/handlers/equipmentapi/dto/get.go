@@ -28,7 +28,7 @@ func DeserializeGetEquipmentByInventoryNumberRequest(c *gin.Context) (string, er
 
 type GetEquipmentResponse struct {
 	ID                 uuid.UUID                `json:"id"`
-	InventoryNumber    string                   `json:"invemntory_number"`
+	InventoryNumber    string                   `json:"inventory_number"`
 	Name               string                   `json:"name"`
 	ShortName          string                   `json:"short_name"`
 	Category           string                   `json:"category"`
