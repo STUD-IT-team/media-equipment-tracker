@@ -17,10 +17,10 @@ import (
 type CreateOrganizationSuite struct {
 	suite.Suite
 
-	svc         organizationservice.CreateOrganizationService
+	svc              organizationservice.CreateOrganizationService
 	organizationRepo *OrganizationRepoMock
-	auther       *AuthZMock
-	txManager    *TxManagerMock
+	auther           *AuthZMock
+	txManager        *TxManagerMock
 }
 
 func (s *CreateOrganizationSuite) SetupTest() {

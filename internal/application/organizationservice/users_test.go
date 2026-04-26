@@ -17,7 +17,7 @@ import (
 type GetOrganizationUsersSuite struct {
 	suite.Suite
 
-	svc         organizationservice.GetOrganizationUsersService
+	svc              organizationservice.GetOrganizationUsersService
 	organizationRepo *OrganizationRepoMock
 }
 

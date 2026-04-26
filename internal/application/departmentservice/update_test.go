@@ -18,10 +18,10 @@ import (
 type UpdateDepartmentSuite struct {
 	suite.Suite
 
-	svc         departmentservice.UpdateDepartmentService
+	svc            departmentservice.UpdateDepartmentService
 	departmentRepo *DepartmentRepoMock
-	auther       *AuthZMock
-	txManager    *TxManagerMock
+	auther         *AuthZMock
+	txManager      *TxManagerMock
 }
 
 func (s *UpdateDepartmentSuite) SetupTest() {

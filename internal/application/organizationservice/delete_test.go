@@ -18,10 +18,10 @@ import (
 type DeleteOrganizationSuite struct {
 	suite.Suite
 
-	svc         organizationservice.DeleteOrganizationService
+	svc              organizationservice.DeleteOrganizationService
 	organizationRepo *OrganizationRepoMock
-	auther       *AuthZMock
-	txManager    *TxManagerMock
+	auther           *AuthZMock
+	txManager        *TxManagerMock
 }
 
 func (s *DeleteOrganizationSuite) SetupTest() {
