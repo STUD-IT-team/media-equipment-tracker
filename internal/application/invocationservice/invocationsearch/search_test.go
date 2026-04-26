@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"media-equipment-tracker/internal/application/invocationsearch"
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 )
 
