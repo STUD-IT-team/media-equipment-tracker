@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"media-equipment-tracker/internal/application/accessservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/domain"
@@ -38,6 +39,7 @@ type UpdateInvocationService interface {
 type updateInvocationService struct {
 	invocationRepo      domain.EquipmentInvocationRepository
 	availabilityService equipmentservice.AvailabilityEquipmentService
+	accessService       accessservice.AccessService
 	txm                 txmanager.TxManager
 	auther              authzservice.AuthZ
 }
@@ -45,12 +47,14 @@ type updateInvocationService struct {
 func NewUpdateInvocationService(
 	invocationRepo domain.EquipmentInvocationRepository,
 	availabilityService equipmentservice.AvailabilityEquipmentService,
+	accessService accessservice.AccessService,
 	txm txmanager.TxManager,
 	auther authzservice.AuthZ,
 ) UpdateInvocationService {
 	return &updateInvocationService{
 		invocationRepo:      invocationRepo,
 		availabilityService: availabilityService,
+		accessService:       accessService,
 		txm:                 txm,
 		auther:              auther,
 	}
@@ -71,7 +75,7 @@ func (s *updateInvocationService) Update(ctx context.Context, req *UpdateInvocat
 	var inv *domain.EquipmentInvocation
 	err = s.txm.WithinTx(ctx, func(ctx context.Context) error {
 		var err error
-		inv, err = s.invocationRepo.Get(ctx, req.ID, domain.EquipmentInvocationWithEquipment())
+		inv, err = s.invocationRepo.Get(ctx, req.ID, domain.EquipmentInvocationWithEquipment(), domain.EquipmentInvocationWithDepartment(), domain.EquipmentInvocationWithOrganization())
 		if err != nil {
 			return err
 		}
@@ -112,15 +116,32 @@ func (s *updateInvocationService) Update(ctx context.Context, req *UpdateInvocat
 			}
 
 			for _, eq := range inv.Equipment {
+				// Проверка что обрудование доступно физически
 				resp, err := s.availabilityService.Availability(ctx, equipmentservice.EquipmentAvailabilityRequest{
 					ID:        eq.EquipmentID,
 					StartTime: inv.StartTime,
 					EndTime:   inv.EndTime,
 				})
+
 				if err != nil {
 					return err
 				}
 				if !resp.Available {
+					return errs.NewValidationError("Equipment", fmt.Sprintf("equipment %s is not available", eq.EquipmentID))
+				}
+
+				// и душевно
+				access, err := s.accessService.HaveAccessToEquipment(ctx, &accessservice.HaveEquipmentAccessRequest{
+					EquipmentID:  eq.EquipmentID,
+					Department:   inv.Department,
+					Organization: inv.Organization,
+				})
+
+				if err != nil {
+					return err
+				}
+
+				if !access {
 					return errs.NewValidationError("Equipment", fmt.Sprintf("equipment %s is not available", eq.EquipmentID))
 				}
 			}

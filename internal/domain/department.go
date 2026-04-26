@@ -11,7 +11,7 @@ type Department struct {
 	Name string    `gorm:"type:varchar(255);not null"`
 
 	// Не сохраняется
-	Users []*User `gorm:"many2many:user_department;foreignKey:ID;joinForeignKey:department_id;References:ID;joinReferences:user_id"`
+	Users []*UserDepartment `gorm:"foreignKey:DepartmentID"`
 
 	// Сохраняется (только связь, не создаёт и не обновляет Equipment)
 	Equipment []*Equipment `gorm:"many2many:equipment_department;foreignKey:ID;joinForeignKey:department_id;References:ID;joinReferences:equipment_id"`
@@ -44,7 +44,7 @@ type DepartmentOption func(options *DepartmentOptions)
 func DepartmentWithUsers() DepartmentOption {
 	return func(options *DepartmentOptions) {
 		options.withUsers = true
-		options.relations = append(options.relations, "Users")
+		options.relations = append(options.relations, "Users.User")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"media-equipment-tracker/internal/application/accessservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
@@ -34,15 +35,18 @@ type invocationService struct {
 func NewInvocationService(
 	invocationRepository domain.EquipmentInvocationRepository,
 	searchInvocationRepository invocationsearch.SearchInvocationRepository,
+	departmentRepository domain.DepartmentRepository,
+	organizationRepository domain.OrganizationRepository,
 	availabilityService equipmentservice.AvailabilityEquipmentService,
+	accessService accessservice.AccessService,
 	txm txmanager.TxManager,
 	auther authzservice.AuthZ,
 ) InvocationService {
 	return &invocationService{
 		invocationRepository:    invocationRepository,
 		SearchInvocationService: invocationsearch.NewSearchInvocationService(searchInvocationRepository),
-		CreateInvocationService: NewCreateInvocationService(invocationRepository, availabilityService, auther, txm),
-		UpdateInvocationService: NewUpdateInvocationService(invocationRepository, availabilityService, txm, auther),
+		CreateInvocationService: NewCreateInvocationService(invocationRepository, departmentRepository, organizationRepository, accessService, availabilityService, auther, txm),
+		UpdateInvocationService: NewUpdateInvocationService(invocationRepository, availabilityService, accessService, txm, auther),
 		txm:                     txm,
 		auther:                  auther,
 	}

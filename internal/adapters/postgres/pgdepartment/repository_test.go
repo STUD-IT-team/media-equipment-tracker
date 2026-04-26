@@ -274,7 +274,7 @@ func (s *DepartmentRepositorySuite) TestUsers_Preload() {
 	// с preload
 	with, _ := s.deptRepo.Get(ctx, dep.ID, domain.DepartmentWithUsers())
 	s.Len(with.Users, 1)
-	s.Equal(user.ID, with.Users[0].ID)
+	s.Equal(user.ID, with.Users[0].UserID)
 }
 
 func (s *DepartmentRepositorySuite) TestUsers_NoAutoCreate() {
@@ -282,7 +282,9 @@ func (s *DepartmentRepositorySuite) TestUsers_NoAutoCreate() {
 	dep := newDepartment()
 	user := newUser()
 
-	dep.Users = []*domain.User{user}
+	dep.Users = []*domain.UserDepartment{
+		{UserID: user.ID, User: user, DepartmentID: dep.ID, Department: dep, Role: domain.RoleTrainee},
+	}
 
 	// не должен создавать user и не должен падать
 	s.Require().NoError(s.deptRepo.Create(ctx, dep))
