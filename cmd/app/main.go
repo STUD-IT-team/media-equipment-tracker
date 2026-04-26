@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
+
+	"media-equipment-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	"media-equipment-tracker/pkg/txmanager/gormtx"
 
@@ -31,6 +33,9 @@ import (
 func main() {
 	engine := gin.New()
 
+	logger.InitLogger()
+	engine.Use(middleware.LoggerMiddleware())
+
 	dbGetter, txManager, err := gormtx.New(
 		gormtx.WithHost(config.PostgresHost),
 		gormtx.WithPort(uint16(config.PostgresPort)),
@@ -39,7 +44,7 @@ func main() {
 		gormtx.WithDatabase(config.PostgresDatabase),
 	)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logrus.Fatal("Failed to connect to database:", err)
 	}
 
 	// Repository
