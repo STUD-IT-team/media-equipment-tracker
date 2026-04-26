@@ -14,4 +14,5 @@ const (
 	AppPort                 = 8080
 	AuthorizationHeaderKey  = "authorization"
 	AuthorizationTypeBearer = "bearer"
+	EnableFileLogging       = true
 )

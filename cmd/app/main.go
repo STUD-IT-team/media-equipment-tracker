@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"media-equipment-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,6 +26,9 @@ import (
 
 func main() {
 	engine := gin.New()
+
+	logger.InitLogger()
+	engine.Use(middleware.LoggerMiddleware())
 
 	dbGetter, _, err := gormtx.New(
 		gormtx.WithHost(config.PostgresHost),
