@@ -357,6 +357,10 @@ func (s *curatorInvocationService) Cancel(ctx context.Context, id uuid.UUID) err
 			return errs.NewValidationError("Status", "can't cancel invocation when equipment is issued")
 		}
 
+		if inv.Status == domain.InvocationCompleted || inv.Status == domain.InvocationCancelled {
+			return errs.NewValidationError("Status", "can't cancel invocation when it is completed or cancelled")
+		}
+
 		inv.Status = domain.InvocationCancelled
 
 		err = s.invocationRepo.Update(ctx, inv)

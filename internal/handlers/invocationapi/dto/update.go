@@ -14,7 +14,7 @@ type UpdateInvocationRequest struct {
 	EventName    *string  `json:"event_name" binding:"omitempty"`
 	StartTime    *string  `json:"start_time" binding:"omitempty"`
 	EndTime      *string  `json:"end_time" binding:"omitempty"`
-	EquipmentIDs []string `json:"equipment_ids" binding:"required,min=1,dive"`
+	EquipmentIDs []string `json:"equipment_ids" binding:"omitempty"`
 }
 
 func DeserializeUpdateInvocationRequest(c *gin.Context) (*invocationservice.UpdateInvocationRequest, error) {
