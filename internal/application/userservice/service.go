@@ -4,66 +4,103 @@ import (
 	"context"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/pkg/txmanager"
+	"slices"
 
 	"github.com/google/uuid"
 )
 
 type UserService interface {
-	GetByID(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error)
-	GetCurrent(ctx context.Context, with ...domain.UserOption) (*domain.User, error)
-	GetAll(ctx context.Context, with ...domain.UserOption) ([]*domain.User, error)
-	Update(ctx context.Context, user *domain.User) (*domain.User, error)
-	DeleteByID(ctx context.Context, id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	GetAll(ctx context.Context) ([]*domain.User, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type userService struct {
 	userRep domain.UserRepository
 	authz   authzservice.AuthZ
+	txm     txmanager.TxManager
 }
 
-func NewUserService(userRep domain.UserRepository, authz authzservice.AuthZ) (UserService, error) {
+func NewUserService(
+	userRep domain.UserRepository,
+	authz authzservice.AuthZ,
+	txm txmanager.TxManager,
+) (UserService, error) {
 	service := &userService{
 		userRep: userRep,
 		authz:   authz,
+		txm:     txm,
 	}
 	return service, nil
 }
 
-func (s *userService) GetByID(ctx context.Context, id uuid.UUID, with ...domain.UserOption) (*domain.User, error) {
-	user, err := s.userRep.Get(ctx, id, with...)
+func (s *userService) Get(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	payload, err := s.authz.TokenPayloadFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	if !slices.Contains(payload.Roles, domain.AdminRole) {
+		return nil, errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
+	}
+
+	user, err := s.userRep.Get(ctx, id, domain.UserWithDepartments(), domain.UserWithOrganizations(), domain.UserWithEquipmentInvocations(), domain.UserWithAdminEquipmentInvocations(), domain.UserWithStudioInvocations(), domain.UserWithAdminStudioInvocations())
+	if err != nil {
+		return nil, err
+	}
+
 	return user, nil
 }
 
-func (s *userService) GetCurrent(ctx context.Context, with ...domain.UserOption) (*domain.User, error) {
-	tokenPayload, err := s.authz.TokenPayloadFromContext(ctx)
+func (s *userService) GetAll(ctx context.Context) ([]*domain.User, error) {
+	payload, err := s.authz.TokenPayloadFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return s.GetByID(ctx, tokenPayload.UserID, with...)
-}
 
-func (s *userService) GetAll(ctx context.Context, with ...domain.UserOption) ([]*domain.User, error) {
-	users, err := s.userRep.List(ctx, with...)
+	if !slices.Contains(payload.Roles, domain.AdminRole) {
+		return nil, errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
+	}
+
+	users, err := s.userRep.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
-func (s *userService) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
-	if err := s.userRep.Update(ctx, user); err != nil {
-		return nil, err
-	}
-	updatedUser, err := s.userRep.Get(ctx, user.ID)
+func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
+	payload, err := s.authz.TokenPayloadFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return updatedUser, nil
-}
 
-func (s *userService) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	return s.userRep.Delete(ctx, id)
+	if !slices.Contains(payload.Roles, domain.AdminRole) {
+		return errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
+	}
+
+	if payload.UserID == id {
+		return errs.NewValidationError("id", "can't delete current user")
+	}
+
+	s.txm.WithinTx(ctx, func(ctx context.Context) error {
+		user, err := s.userRep.Get(ctx, id, domain.UserWithStudioInvocations(), domain.UserWithEquipmentInvocations())
+		if err != nil {
+			return err
+		}
+
+		if len(user.EquipmentInvocations) > 0 || len(user.StudioInvocations) > 0 {
+			return errs.NewValidationError("id", "can't delete user with equipment or studio invocations")
+		}
+
+		err = s.userRep.Delete(ctx, id)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	return err
 }
