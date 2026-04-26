@@ -99,6 +99,11 @@ func (m *AccessServiceMock) HaveAccessToEquipment(ctx context.Context, req *acce
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *AccessServiceMock) HaveAccessToStudio(ctx context.Context, req *accessservice.HaveStudioAccessRequest) (bool, error) {
+	args := m.Called(ctx, req)
+	return args.Bool(0), args.Error(1)
+}
+
 type AvailabilityEquipmentServiceMock struct{ mock.Mock }
 
 func (m *AvailabilityEquipmentServiceMock) Availability(ctx context.Context, req equipmentservice.EquipmentAvailabilityRequest) (*equipmentservice.EquipmentAvailabilityResponse, error) {

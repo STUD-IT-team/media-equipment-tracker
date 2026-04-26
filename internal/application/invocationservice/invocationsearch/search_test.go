@@ -28,12 +28,13 @@ func (s *InvocationSuite) SetupTest() {
 }
 
 func (s *InvocationSuite) TestSearch_Success() {
+	etime := time.Now()
 	req := &invocationsearch.SearchInvocationRequest{
 		SearchString: stringPtr("test"),
 		Statuses:     []domain.EquipmentInvocationStatus{domain.InvocationCreated},
 		EquipmentIDs: []uuid.UUID{uuid.New()},
 		StartTime:    &time.Time{},
-		EndTime:      &time.Time{},
+		EndTime:      &etime,
 	}
 	invocations := []*domain.EquipmentInvocation{{ID: uuid.New()}}
 

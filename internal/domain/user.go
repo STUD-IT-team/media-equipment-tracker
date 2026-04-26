@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	DefaultNice = 100
+	DefaultNice            = 100
+	StudioNiceThreshold    = 60
+	EquipmentNiceThreshold = 60
 )
 
 type User struct {

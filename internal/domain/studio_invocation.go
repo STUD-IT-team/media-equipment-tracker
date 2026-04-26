@@ -17,7 +17,7 @@ type StudioInvocation struct {
 	NeedsCyclorama      bool                   `gorm:"column:needs_cyclorama;type:boolean;default:false"`
 	NeedsBlackFabric    bool                   `gorm:"column:needs_black_fabric;type:boolean;default:false"`
 	Status              StudioInvocationStatus `gorm:"type:studio_invocation_status;not null"`
-	CuratorComment      string                 `gorm:"column:curator_comment;type:text"`
+	CuratorComment      *string                `gorm:"column:curator_comment;type:text"`
 
 	OrganizationID *uuid.UUID `gorm:"column:organization_id;type:uuid"`
 	// Не сохраняется (только ID)
