@@ -2,33 +2,46 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"media-equipment-tracker/internal/application/userservice"
-	"media-equipment-tracker/internal/handlers/userapi"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
+	"media-equipment-tracker/pkg/logger"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"media-equipment-tracker/cmd/app/config"
 
 	"media-equipment-tracker/internal/adapters/bcrypthasher"
 	"media-equipment-tracker/internal/adapters/inmem"
+	"media-equipment-tracker/internal/adapters/postgres/pgdepartment"
+	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
+	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
+	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
+	"media-equipment-tracker/internal/application/accessservice"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/application/equipmentservice"
+	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/userservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
+	"media-equipment-tracker/internal/handlers/equipmentapi"
+	"media-equipment-tracker/internal/handlers/invocationapi"
+	"media-equipment-tracker/internal/handlers/userapi"
 	"media-equipment-tracker/internal/middleware"
 )
 
 func main() {
 	engine := gin.New()
 
-	dbGetter, _, err := gormtx.New(
+	logger.InitLogger()
+	engine.Use(middleware.LoggerMiddleware())
+
+	dbGetter, txManager, err := gormtx.New(
 		gormtx.WithHost(config.PostgresHost),
 		gormtx.WithPort(uint16(config.PostgresPort)),
 		gormtx.WithUser(config.PostgresUser),
@@ -36,11 +49,15 @@ func main() {
 		gormtx.WithDatabase(config.PostgresDatabase),
 	)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logrus.Fatal("Failed to connect to database:", err)
 	}
 
 	// Repository
 	userRepo := pguser.NewPostgresUserRepository(dbGetter)
+	equipmentRepo := pgequipment.NewPostgresEquipmentRepository(dbGetter)
+	departmentRepo := pgdepartment.NewPostgresDepartmentRepository(dbGetter)
+	organizationRepo := pgorganization.NewPostgresOrganizationRepository(dbGetter)
+	invocationRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
@@ -64,6 +81,10 @@ func main() {
 		panic(err.Error())
 	}
 
+	accessService := accessservice.NewAccessService(authZ)
+	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
+	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
+
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
 	_ = healthRouter
@@ -82,6 +103,14 @@ func main() {
 	_ = userRouter
 	userRouterForAdmin := userapi.NewUserRouterForAdmin(adminsGroup, userServ)
 	_ = userRouterForAdmin
+
+	// Equipment
+	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
+	_ = equipmentRouter
+
+	// Invocation
+	invocationRouter := invocationapi.NewRouter(usersGroup, invocationService)
+	_ = invocationRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())

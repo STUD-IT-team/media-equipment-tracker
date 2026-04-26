@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -95,7 +96,7 @@ func (r *PostgresEquipmentInvocationRepository) Update(ctx context.Context, equi
 		}
 
 		if equipmentInvocation.Equipment != nil {
-			if err := tx.Model(equipmentInvocation).Association("Equipment").Replace(equipmentInvocation.Equipment); err != nil {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Model(equipmentInvocation).Association("Equipment").Unscoped().Replace(equipmentInvocation.Equipment); err != nil {
 				return errs.NewRepositoryError("update", err)
 			}
 		}
@@ -118,4 +119,60 @@ func (r *PostgresEquipmentInvocationRepository) Delete(ctx context.Context, id u
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
+}
+
+func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req *invocationsearch.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, errs.NewRepositoryError("search", err)
+	}
+
+	var invocations []*domain.EquipmentInvocation
+	query := r.applyOptions(ctx, with)
+	if req.SearchString != nil {
+		query = query.Where("event_name like ?", "%"+*req.SearchString+"%")
+	}
+
+	// Если хотя бы кусочек события в промежутке, то подходит
+	if req.StartTime != nil {
+		query = query.Where("end_time >= ?", *req.StartTime)
+	}
+	if req.EndTime != nil {
+		query = query.Where("start_time <= ?", *req.EndTime)
+	}
+
+	if req.EquipmentIDs != nil {
+		subQuery := db.Model(&domain.EquipmentInInvocation{}).
+			Where("invocation_id = equipment_invocation.id").
+			Where("equipment_id IN ?", req.EquipmentIDs).
+			Select("COUNT(DISTINCT equipment_id)")
+
+		query = query.Where("(?) = ?", subQuery, len(req.EquipmentIDs))
+	}
+
+	if req.Statuses != nil {
+		query = query.Where("status IN (?)", req.Statuses)
+	}
+
+	if req.AdminID != nil {
+		query = query.Where("admin_id = ?", *req.AdminID)
+	}
+
+	if req.UserID != nil {
+		query = query.Where("user_id = ?", *req.UserID)
+	}
+
+	if req.DepartmentID != nil {
+		query = query.Where("department_id = ?", *req.DepartmentID)
+	}
+
+	if req.OrganizationID != nil {
+		query = query.Where("organization_id = ?", *req.OrganizationID)
+	}
+
+	if err := query.Find(&invocations).Error; err != nil {
+		return nil, errs.NewRepositoryError("search", err)
+	}
+
+	return invocations, nil
 }
