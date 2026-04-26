@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"media-equipment-tracker/internal/application/userservice"
+	"media-equipment-tracker/internal/handlers/userapi"
 
 	"github.com/gin-gonic/gin"
 
@@ -56,6 +58,12 @@ func main() {
 		panic(err.Error())
 	}
 
+	// Services
+	userServ, err := userservice.NewUserService(userRepo, authZ)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
 	_ = healthRouter
@@ -70,6 +78,10 @@ func main() {
 	// Routers
 	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
+	userRouter := userapi.NewUserRouter(usersGroup, userServ)
+	_ = userRouter
+	userRouterForAdmin := userapi.NewUserRouterForAdmin(adminsGroup, userServ)
+	_ = userRouterForAdmin
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())

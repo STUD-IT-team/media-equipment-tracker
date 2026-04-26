@@ -223,11 +223,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: search
+        - name: full_name
           in: query
           schema:
             type: string
-          description: Поиск по ФИО/email
+          description: Фильтр по полному имени (частичное совпадение)
+          example: "Иван"
+          required: false
+        - name: email
+          in: query
+          schema:
+            type: string
+          description: Фильтр по email (частичное совпадение)
+          example: "user@example.com"
+          required: false
       responses:
         '200':
           description: Список пользователей
@@ -301,43 +310,6 @@ paths:
           description: Пользователь не найден
         '409':
           description: Email уже используется
-
-  /users/{id}/nice:
-    patch:
-      tags: [Users]
-      summary: Изменить баллы порядочности (Admin only)
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [nice, reason]
-              properties:
-                nice:
-                  type: integer
-                  minimum: 1
-                  description: Новое значение порядочности (CHECK nice > 0)
-      responses:
-        '200':
-          description: Баллы обновлены
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '403':
-          description: Доступ запрещён
-        '404':
-          description: Пользователь не найден
 
   # ==================== ORGANIZATIONS ====================
   

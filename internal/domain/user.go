@@ -79,7 +79,7 @@ func (o *UserOptions) Filter() *UserFilter {
 }
 
 type UserFilter struct {
-	FullName string `form:"fullName"`
+	FullName string `form:"full_name"`
 	Email    string `form:"email"`
 }
 
