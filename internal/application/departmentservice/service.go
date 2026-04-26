@@ -31,8 +31,8 @@ var _ DepartmentService = (*departmentService)(nil)
 func NewDepartmentService(
 	auther authzservice.AuthZ,
 	departmentRepository domain.DepartmentRepository,
-	userRepository domain.UserRepository,
-	equipmentRepository domain.EquipmentRepository,
+	_ domain.UserRepository,
+	_ domain.EquipmentRepository,
 	txManager txmanager.TxManager,
 ) DepartmentService {
 	return &departmentService{
