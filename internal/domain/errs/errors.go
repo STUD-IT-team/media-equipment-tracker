@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"media-equipment-tracker/internal/domain"
 )
 
 type EntityNotFoundError struct {
@@ -90,6 +92,24 @@ func (e RepositoryError) Unwrap() error {
 
 func NewRepositoryError(op string, err error) RepositoryError {
 	return RepositoryError{Op: op, Err: err}
+}
+
+type RoleAuthError struct {
+	RequiredRoles []domain.RoleAuth
+	ActualRoles   []domain.RoleAuth
+}
+
+func (e RoleAuthError) Error() string {
+	return fmt.Sprintf("insufficient role authorization. required roles: %v, actual roles: %v", e.RequiredRoles, e.ActualRoles)
+}
+
+func NewRoleAuthError(requiredRoles, actualRoles []domain.RoleAuth) RoleAuthError {
+	return RoleAuthError{RequiredRoles: requiredRoles, ActualRoles: actualRoles}
+}
+
+func IsRoleAuthError(err error) bool {
+	var e RoleAuthError
+	return errors.As(err, &e)
 }
 
 func IsEntityNotFoundError(err error) bool {
