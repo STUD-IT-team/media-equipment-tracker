@@ -24,11 +24,13 @@ import (
 	"media-equipment-tracker/internal/application/accessservice"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/application/departmentservice"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/application/invocationservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
+	"media-equipment-tracker/internal/handlers/departmentapi"
 	"media-equipment-tracker/internal/handlers/equipmentapi"
 	"media-equipment-tracker/internal/handlers/invocationapi"
 	"media-equipment-tracker/internal/middleware"
@@ -77,6 +79,7 @@ func main() {
 	// Services
 	accessService := accessservice.NewAccessService(authZ)
 	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
+	departmentService := departmentservice.NewDepartmentService(authZ, departmentRepo, userRepo, equipmentRepo, txManager)
 	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
 
 	// Groups
@@ -93,6 +96,10 @@ func main() {
 	// Routers
 	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
+
+	// Departments
+	departmentRouter := departmentapi.NewRouter(usersGroup, departmentService)
+	_ = departmentRouter
 
 	// Equipment
 	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
