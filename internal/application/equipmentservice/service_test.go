@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"media-equipment-tracker/internal/application/equipmentservice"
-	invocationservice "media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 )
@@ -206,7 +206,7 @@ func (m *SearchEquipmentRepoMock) Search(ctx context.Context, search *equipments
 
 type SearchInvocationRepoMock struct{ mock.Mock }
 
-func (m *SearchInvocationRepoMock) Search(ctx context.Context, search *invocationservice.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (m *SearchInvocationRepoMock) Search(ctx context.Context, search *invocationsearch.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
 	args := m.Called(ctx, search, with)
 	return args.Get(0).([]*domain.EquipmentInvocation), args.Error(1)
 }

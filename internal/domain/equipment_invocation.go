@@ -100,7 +100,7 @@ func EquipmentInvocationWithAdmin() EquipmentInvocationOption {
 func EquipmentInvocationWithEquipment() EquipmentInvocationOption {
 	return func(options *EquipmentInvocationOptions) {
 		options.withEquipment = true
-		options.relations = append(options.relations, "Equipment")
+		options.relations = append(options.relations, "Equipment.Equipment")
 	}
 }
 

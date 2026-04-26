@@ -48,7 +48,7 @@ func (s *AvailabilityEquipmentSuite) TestAvailability_Available() {
 	s.txManager.On("WithinTx", ctx, mock.AnythingOfType("func(context.Context) error")).Return(nil).Run(func(args mock.Arguments) {
 		fn := args.Get(1).(func(context.Context) error)
 		s.equipmentRepo.On("Get", mock.Anything, eqID, mock.Anything).Return(eq, nil)
-		s.searchInvocationRepo.On("Search", mock.Anything, mock.AnythingOfType("*invocationservice.SearchInvocationRequest"), mock.Anything).Return([]*domain.EquipmentInvocation{}, nil)
+		s.searchInvocationRepo.On("Search", mock.Anything, mock.AnythingOfType("*invocationsearch.SearchInvocationRequest"), mock.Anything).Return([]*domain.EquipmentInvocation{}, nil)
 		err := fn(ctx)
 		s.NoError(err)
 	})
@@ -104,7 +104,7 @@ func (s *AvailabilityEquipmentSuite) TestAvailability_HasConflicts() {
 	s.txManager.On("WithinTx", ctx, mock.AnythingOfType("func(context.Context) error")).Return(nil).Run(func(args mock.Arguments) {
 		fn := args.Get(1).(func(context.Context) error)
 		s.equipmentRepo.On("Get", mock.Anything, eqID, mock.Anything).Return(eq, nil)
-		s.searchInvocationRepo.On("Search", mock.Anything, mock.AnythingOfType("*invocationservice.SearchInvocationRequest"), mock.Anything).Return(invocations, nil)
+		s.searchInvocationRepo.On("Search", mock.Anything, mock.AnythingOfType("*invocationsearch.SearchInvocationRequest"), mock.Anything).Return(invocations, nil)
 		err := fn(ctx)
 		s.NoError(err)
 	})

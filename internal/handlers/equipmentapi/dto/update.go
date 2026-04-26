@@ -65,23 +65,11 @@ func DeserializeUpdateEquipmentRequest(c *gin.Context) (equipmentservice.UpdateE
 }
 
 type UpdateEquipmentResponse struct {
-	ID                 string `json:"id"`
-	InventoryNumber    string `json:"inventory_number"`
-	Name               string `json:"name"`
-	ShortName          string `json:"short_name"`
-	Category           string `json:"category"`
-	AvailableToTrainee bool   `json:"available_to_trainee"`
-	Status             string `json:"status"`
+	ShortEquipmentItem
 }
 
 func SerializeUpdateEquipmentResponse(_ *gin.Context, equipment *domain.Equipment) any {
 	return UpdateEquipmentResponse{
-		ID:                 equipment.ID.String(),
-		InventoryNumber:    equipment.InventoryNumber,
-		Name:               equipment.Name,
-		ShortName:          equipment.ShortName,
-		Category:           equipment.Category,
-		AvailableToTrainee: equipment.AvailableToTrainee,
-		Status:             string(equipment.Status),
+		ShortEquipmentItem: FromEquipment(equipment),
 	}
 }

@@ -1,4 +1,4 @@
-package invocationservice
+package invocationsearch
 
 import (
 	"context"
@@ -34,6 +34,12 @@ type SearchInvocationRequest struct {
 
 	StartTime *time.Time
 	EndTime   *time.Time
+
+	AdminID *uuid.UUID
+	UserID  *uuid.UUID
+
+	DepartmentID   *uuid.UUID
+	OrganizationID *uuid.UUID
 }
 
 func (r *SearchInvocationRequest) nilize() {
@@ -51,6 +57,18 @@ func (r *SearchInvocationRequest) nilize() {
 	}
 	if r.EndTime != nil && r.EndTime.Before(time.Now()) {
 		r.EndTime = nil
+	}
+	if r.AdminID != nil && *r.AdminID == uuid.Nil {
+		r.AdminID = nil
+	}
+	if r.UserID != nil && *r.UserID == uuid.Nil {
+		r.UserID = nil
+	}
+	if r.DepartmentID != nil && *r.DepartmentID == uuid.Nil {
+		r.DepartmentID = nil
+	}
+	if r.OrganizationID != nil && *r.OrganizationID == uuid.Nil {
+		r.OrganizationID = nil
 	}
 }
 

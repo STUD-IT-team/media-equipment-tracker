@@ -17,16 +17,20 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pgdepartment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
+	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
+	"media-equipment-tracker/internal/application/accessservice"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/application/equipmentservice"
+	"media-equipment-tracker/internal/application/invocationservice"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
 	"media-equipment-tracker/internal/handlers/equipmentapi"
+	"media-equipment-tracker/internal/handlers/invocationapi"
 	"media-equipment-tracker/internal/middleware"
 )
 
@@ -51,6 +55,7 @@ func main() {
 	userRepo := pguser.NewPostgresUserRepository(dbGetter)
 	equipmentRepo := pgequipment.NewPostgresEquipmentRepository(dbGetter)
 	departmentRepo := pgdepartment.NewPostgresDepartmentRepository(dbGetter)
+	organizationRepo := pgorganization.NewPostgresOrganizationRepository(dbGetter)
 	invocationRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(dbGetter)
 
 	// Auth
@@ -70,7 +75,9 @@ func main() {
 	}
 
 	// Services
+	accessService := accessservice.NewAccessService(authZ)
 	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
+	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
@@ -90,6 +97,10 @@ func main() {
 	// Equipment
 	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
 	_ = equipmentRouter
+
+	// Invocation
+	invocationRouter := invocationapi.NewRouter(usersGroup, invocationService)
+	_ = invocationRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())

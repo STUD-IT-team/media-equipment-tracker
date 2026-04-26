@@ -889,14 +889,55 @@ paths:
                         status:
                           type: string
 
-  # ==================== EQUIPMENT INVOCATIONS ====================
-  
+   # ==================== EQUIPMENT INVOCATIONS ====================
+
   /equipment-invocations:
     get:
       tags: [Equipment Invocations]
       summary: Список заявок на оборудование (Admin only)
       security:
         - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: '#/components/schemas/EquipmentInvocationStatus'
+        description: Фильтр по статусу заявки
+      - name: department_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+        description: Фильтр по отделу
+      - name: organization_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+        description: Фильтр по организации
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+        description: Фильтр по пользователю
+      - name: start_time
+        in: query
+        schema:
+          type: string
+          format: date-time
+        description: Фильтр по времени начала (от)
+      - name: end_time
+        in: query
+        schema:
+          type: string
+          format: date-time
+        description: Фильтр по времени окончания (до)
+      - name: search
+        in: query
+        schema:
+          type: string
+        description: Поиск по названию события
       responses:
         '200':
           description: Список заявок
@@ -908,7 +949,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/EquipmentInvocationResponse'
+                      $ref: '#/components/schemas/ShortInvocationItem'
 
     post:
       tags: [Equipment Invocations]
@@ -1023,12 +1064,8 @@ paths:
       responses:
         '200':
           description: Куратор назначен
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
         '409':
-          description: У заявки уже есть куратор
+            description: У заявки уже есть куратор
 
   /equipment-invocations/{id}/status:
     patch:
@@ -1061,11 +1098,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
+                $ref: '#/components/schemas/ShortInvocationItem'
         '403':
           description: Пользователь не является куратором заявки
 
-  /equipment-invocations/{id}/issue:
+  /equipment-invocations/{id}/issue/{equipment_id}:
     post:
       tags: [Equipment Invocations]
       summary: Выдать оборудование (Curator)
@@ -1079,28 +1116,18 @@ paths:
           schema:
             type: string
             format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [equipment_id]
-              properties:
-                equipment_id:
-                  type: string
-                  format: uuid
-                qr_id:
-                  type: string
+        - name: equipment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+
       responses:
         '200':
           description: Оборудование выдано
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
-  /equipment-invocations/{id}/return:
+  /equipment-invocations/{id}/return/{equipment_id}:
     post:
       tags: [Equipment Invocations]
       summary: Принять оборудование (Curator)
@@ -1114,30 +1141,17 @@ paths:
           schema:
             type: string
             format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [equipment_id]
-              properties:
-                equipment_id:
-                  type: string
-                  format: uuid
-                qr_id:
-                  type: string
-                condition_notes:
-                  type: string
+        - name: equipment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Оборудование принято
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
-  /equipment-invocations/{id}/approved:
+  /equipment-invocations/{id}/approve:
     post:
       tags: [Equipment Invocations]
       summary: Одобрить заявку (Curator)
@@ -1153,12 +1167,8 @@ paths:
       responses:
         '200':
           description: Заявка одобрена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
-  /equipment-invocations/{id}/request_review:
+  /equipment-invocations/{id}/request-changes:
     post:
       tags: [Equipment Invocations]
       summary: Запросить изменения в заявку (Curator)
@@ -1174,10 +1184,6 @@ paths:
       responses:
         '200':
           description: Изменения запрошены
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
   /equipment-invocations/{id}/complete:
     post:
@@ -1195,10 +1201,6 @@ paths:
       responses:
         '200':
           description: Заявка завершена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
   /equipment-invocations/{id}/cancel:
     post:
@@ -1213,21 +1215,9 @@ paths:
           schema:
             type: string
             format: uuid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
       responses:
         '200':
           description: Заявка отменена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquipmentInvocationResponse'
 
   # ==================== STUDIO INVOCATIONS ====================
   
@@ -2322,6 +2312,43 @@ components:
                 end_time:
                   type: string
                   format: date-time
+
+    ShortInvocationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_name:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        status:
+          type: string
+        curator:
+          type: string
+          nullable: true
+        admin_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_id:
+          type: string
+          format: uuid
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        equipment_count:
+          type: integer
 
     EquipmentInvocationResponse:
       type: object
