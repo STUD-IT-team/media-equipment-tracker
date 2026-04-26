@@ -13,7 +13,6 @@ type DepartmentService interface {
 	UpdateDepartmentService
 	DeleteDepartmentService
 	GetDepartmentUsersService
-	GetDepartmentEquipmentService
 }
 
 type departmentService struct {
@@ -23,7 +22,6 @@ type departmentService struct {
 	UpdateDepartmentService
 	DeleteDepartmentService
 	GetDepartmentUsersService
-	GetDepartmentEquipmentService
 }
 
 var _ DepartmentService = (*departmentService)(nil)
@@ -36,12 +34,11 @@ func NewDepartmentService(
 	txManager txmanager.TxManager,
 ) DepartmentService {
 	return &departmentService{
-		CreateDepartmentService:       NewCreateDepartmentService(auther, departmentRepository, txManager),
-		ListDepartmentService:         NewListDepartmentService(departmentRepository),
-		GetDepartmentService:          NewGetDepartmentService(departmentRepository),
-		UpdateDepartmentService:       NewUpdateDepartmentService(auther, departmentRepository, txManager),
-		DeleteDepartmentService:       NewDeleteDepartmentService(auther, departmentRepository, txManager),
-		GetDepartmentUsersService:     NewGetDepartmentUsersService(departmentRepository),
-		GetDepartmentEquipmentService: NewGetDepartmentEquipmentService(departmentRepository),
+		CreateDepartmentService:   NewCreateDepartmentService(auther, departmentRepository, txManager),
+		ListDepartmentService:     NewListDepartmentService(departmentRepository),
+		GetDepartmentService:      NewGetDepartmentService(departmentRepository),
+		UpdateDepartmentService:   NewUpdateDepartmentService(auther, departmentRepository, txManager),
+		DeleteDepartmentService:   NewDeleteDepartmentService(auther, departmentRepository, txManager),
+		GetDepartmentUsersService: NewGetDepartmentUsersService(departmentRepository),
 	}
 }

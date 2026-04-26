@@ -26,7 +26,6 @@ func NewRouter(router *gin.RouterGroup, service departmentservice.DepartmentServ
 	gr.PATCH("/:id", r.Update)
 	gr.DELETE("/:id", r.Delete)
 	gr.GET("/:id/users", r.GetUsers)
-	gr.GET("/:id/equipment", r.GetEquipment)
 	return r
 }
 
@@ -173,27 +172,4 @@ func (r *DepartmentRouter) GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(200, dto.SerializeGetDepartmentUsersResponse(c, users))
-}
-
-func (r *DepartmentRouter) GetEquipment(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	id, availableOnly, err := dto.DeserializeGetDepartmentEquipmentRequest(c)
-	if err != nil {
-		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("GetDepartmentEquipmentRequest", err.Error())))
-		return
-	}
-
-	equipment, err := r.service.GetDepartmentEquipment(ctx, id, availableOnly)
-	if err != nil {
-		switch {
-		case errs.IsEntityNotFoundError(err):
-			c.JSON(404, ginerror.ErrJSONBody(err))
-		default:
-			c.JSON(500, ginerror.ErrJSONBody(err))
-		}
-		return
-	}
-
-	c.JSON(200, dto.SerializeGetDepartmentEquipmentResponse(c, equipment))
 }

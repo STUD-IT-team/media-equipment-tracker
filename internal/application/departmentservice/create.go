@@ -59,9 +59,7 @@ func (s *createDepartmentService) CreateDepartment(ctx context.Context, req *Cre
 		Name: req.Name,
 	}
 
-	err = s.t.WithinTx(ctx, func(ctx context.Context) error {
-		return s.departmentRepository.Create(ctx, department)
-	})
+	err = s.departmentRepository.Create(ctx, department)
 	if err != nil {
 		return nil, err
 	}

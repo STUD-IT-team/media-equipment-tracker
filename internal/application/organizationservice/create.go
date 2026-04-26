@@ -59,9 +59,7 @@ func (s *createOrganizationService) CreateOrganization(ctx context.Context, req 
 		Name: req.Name,
 	}
 
-	err = s.t.WithinTx(ctx, func(ctx context.Context) error {
-		return s.organizationRepository.Create(ctx, organization)
-	})
+	err = s.organizationRepository.Create(ctx, organization)
 	if err != nil {
 		return nil, err
 	}
