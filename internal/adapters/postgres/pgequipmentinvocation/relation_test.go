@@ -421,10 +421,16 @@ func (s *EquipmentInvocationRelationsSuite) TestEquipmentInInvocation_Update() {
 
 	invocation.Equipment = []*domain.EquipmentInInvocation{eqInInv}
 	// Может создаться со связью, так equipment создан
-	s.Require().NoError(s.equipmentInInvocationRepo.Update(ctx, eqInInv))
+	s.Require().NoError(s.invocationRepo.Update(ctx, invocation))
 
 	got, _ := s.equipmentInInvocationRepo.Get(ctx, invocation.ID, eqInInv.EquipmentID)
 	s.Equal(domain.EquipmentNotIssued, got.Status)
+
+	eqInInv.Status = domain.EquipmentIssued
+	s.Require().NoError(s.invocationRepo.Update(ctx, invocation))
+
+	got, _ = s.equipmentInInvocationRepo.Get(ctx, invocation.ID, eqInInv.EquipmentID)
+	s.Equal(domain.EquipmentIssued, got.Status)
 }
 
 func (s *EquipmentInvocationRelationsSuite) TestEquipmentInInvocation_NoAutoCreate() {

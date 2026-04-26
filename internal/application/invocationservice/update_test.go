@@ -1,3 +1,5 @@
+//go:build unit
+
 package invocationservice_test
 
 import (
@@ -142,7 +144,7 @@ func (s *UpdateInvocationSuite) TestUpdate_WithEquipment() {
 		ID:           invID,
 		StartTime:    &start,
 		EndTime:      &end,
-		EquipmentIDs: &[]uuid.UUID{eqID},
+		EquipmentIDs: []uuid.UUID{eqID},
 	}
 
 	inv := &domain.EquipmentInvocation{
@@ -180,7 +182,7 @@ func (s *UpdateInvocationSuite) TestUpdate_EquipmentNotAvailable() {
 		ID:           invID,
 		StartTime:    &start,
 		EndTime:      &end,
-		EquipmentIDs: &[]uuid.UUID{eqID},
+		EquipmentIDs: []uuid.UUID{eqID},
 	}
 
 	inv := &domain.EquipmentInvocation{
@@ -213,7 +215,7 @@ func (s *UpdateInvocationSuite) TestUpdate_NoAccess() {
 		ID:           invID,
 		StartTime:    &start,
 		EndTime:      &end,
-		EquipmentIDs: &[]uuid.UUID{eqID},
+		EquipmentIDs: []uuid.UUID{eqID},
 	}
 
 	inv := &domain.EquipmentInvocation{

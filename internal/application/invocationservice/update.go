@@ -18,11 +18,11 @@ import (
 )
 
 type UpdateInvocationRequest struct {
-	ID           uuid.UUID    `validate:"required"`
-	EventName    *string      `validate:"omitempty,min=4,max=255"`
-	StartTime    *time.Time   `validate:"omitempty"`
-	EndTime      *time.Time   `validate:"omitempty,gtfield=StartTime"`
-	EquipmentIDs *[]uuid.UUID `validate:"omitempty,min=1,dive"`
+	ID           uuid.UUID   `validate:"required"`
+	EventName    *string     `validate:"omitempty,min=4,max=255"`
+	StartTime    *time.Time  `validate:"omitempty"`
+	EndTime      *time.Time  `validate:"omitempty,gtfield=StartTime"`
+	EquipmentIDs []uuid.UUID `validate:"omitempty,min=1,dive"`
 }
 
 type UpdateInvocationStatusRequest struct {
@@ -38,6 +38,8 @@ type UpdateInvocationService interface {
 
 type updateInvocationService struct {
 	invocationRepo      domain.EquipmentInvocationRepository
+	departmentRepo      domain.DepartmentRepository
+	organizationRepo    domain.OrganizationRepository
 	availabilityService equipmentservice.AvailabilityEquipmentService
 	accessService       accessservice.AccessService
 	txm                 txmanager.TxManager
@@ -46,6 +48,8 @@ type updateInvocationService struct {
 
 func NewUpdateInvocationService(
 	invocationRepo domain.EquipmentInvocationRepository,
+	departmentRepo domain.DepartmentRepository,
+	organizationRepo domain.OrganizationRepository,
 	availabilityService equipmentservice.AvailabilityEquipmentService,
 	accessService accessservice.AccessService,
 	txm txmanager.TxManager,
@@ -53,6 +57,8 @@ func NewUpdateInvocationService(
 ) UpdateInvocationService {
 	return &updateInvocationService{
 		invocationRepo:      invocationRepo,
+		departmentRepo:      departmentRepo,
+		organizationRepo:    organizationRepo,
 		availabilityService: availabilityService,
 		accessService:       accessService,
 		txm:                 txm,
@@ -106,8 +112,9 @@ func (s *updateInvocationService) Update(ctx context.Context, req *UpdateInvocat
 		}
 
 		if req.EquipmentIDs != nil {
-			inv.Equipment = make([]*domain.EquipmentInInvocation, 0, len(*req.EquipmentIDs))
-			for _, id := range *req.EquipmentIDs {
+
+			inv.Equipment = make([]*domain.EquipmentInInvocation, 0, len(req.EquipmentIDs))
+			for _, id := range req.EquipmentIDs {
 				inv.Equipment = append(inv.Equipment, &domain.EquipmentInInvocation{
 					InvocationID: inv.ID,
 					EquipmentID:  id,
@@ -115,12 +122,25 @@ func (s *updateInvocationService) Update(ctx context.Context, req *UpdateInvocat
 				})
 			}
 
+			if inv.DepartmentID != nil {
+				err = s.departmentRepo.Reload(ctx, inv.Department, domain.DepartmentWithUsers(), domain.DepartmentWithEquipment())
+				if err != nil {
+					return err
+				}
+			} else if inv.OrganizationID != nil {
+				err = s.organizationRepo.Reload(ctx, inv.Organization, domain.WithUsers())
+				if err != nil {
+					return err
+				}
+			}
+
 			for _, eq := range inv.Equipment {
 				// Проверка что обрудование доступно физически
 				resp, err := s.availabilityService.Availability(ctx, equipmentservice.EquipmentAvailabilityRequest{
-					ID:        eq.EquipmentID,
-					StartTime: inv.StartTime,
-					EndTime:   inv.EndTime,
+					ID:            eq.EquipmentID,
+					StartTime:     inv.StartTime,
+					EndTime:       inv.EndTime,
+					ForInvocation: &inv.ID,
 				})
 
 				if err != nil {

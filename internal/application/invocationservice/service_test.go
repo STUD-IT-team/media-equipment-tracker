@@ -18,15 +18,15 @@ import (
 type InvocationSuite struct {
 	suite.Suite
 
-	svc                invocationservice.InvocationService
-	invocationRepo     *InvocationRepoMock
-	searchRepo         *SearchInvocationRepoMock
-	departmentRepo     *DepartmentRepoMock
-	organizationRepo   *OrganizationRepoMock
-	availabilitySvc    *AvailabilityEquipmentServiceMock
-	accessService      *AccessServiceMock
-	txManager          *TxManagerMock
-	auther             *AuthZMock
+	svc              invocationservice.InvocationService
+	invocationRepo   *InvocationRepoMock
+	searchRepo       *SearchInvocationRepoMock
+	departmentRepo   *DepartmentRepoMock
+	organizationRepo *OrganizationRepoMock
+	availabilitySvc  *AvailabilityEquipmentServiceMock
+	accessService    *AccessServiceMock
+	txManager        *TxManagerMock
+	auther           *AuthZMock
 }
 
 func (s *InvocationSuite) SetupTest() {
@@ -45,6 +45,7 @@ func (s *InvocationSuite) SetupTest() {
 		s.departmentRepo,
 		s.organizationRepo,
 		s.availabilitySvc,
+		nil,
 		s.accessService,
 		s.txManager,
 		s.auther,
@@ -101,11 +102,12 @@ func (s *InvocationSuite) TestGet_NoAccess() {
 func (s *InvocationSuite) TestDelete_Success() {
 	payload := domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}, UserID: uuid.New()}
 	invID := uuid.New()
-	inv := &domain.EquipmentInvocation{ID: invID, UserID: payload.UserID}
+	inv := &domain.EquipmentInvocation{ID: invID, UserID: payload.UserID, Status: domain.InvocationCreated}
 
 	ctx := context.Background()
 	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
 	s.invocationRepo.On("Get", mock.Anything, invID, mock.Anything).Return(inv, nil)
+	s.invocationRepo.On("Delete", mock.Anything, invID).Return(nil)
 
 	err := s.svc.Delete(ctx, invID)
 
@@ -121,11 +123,27 @@ func (s *InvocationSuite) TestDelete_NoAccess() {
 	ctx := context.Background()
 	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
 	s.invocationRepo.On("Get", mock.Anything, invID, mock.Anything).Return(inv, nil)
+	s.invocationRepo.On("Delete", mock.Anything, invID).Return(nil)
 
 	err := s.svc.Delete(ctx, invID)
 
 	s.Error(err)
 	s.True(errs.IsRoleAuthError(err))
+}
+
+func (s *InvocationSuite) TestDelete_InvalidStatus() {
+	payload := domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}, UserID: uuid.New()}
+	invID := uuid.New()
+	inv := &domain.EquipmentInvocation{ID: invID, Status: domain.InvocationEquipmentIssued}
+
+	ctx := context.Background()
+	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
+	s.invocationRepo.On("Get", mock.Anything, invID, mock.Anything).Return(inv, nil)
+
+	err := s.svc.Delete(ctx, invID)
+
+	s.Error(err)
+	s.True(errs.IsValidationError(err))
 }
 
 func TestInvocationSuite(t *testing.T) {

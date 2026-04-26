@@ -96,7 +96,7 @@ func (r *PostgresEquipmentInvocationRepository) Update(ctx context.Context, equi
 		}
 
 		if equipmentInvocation.Equipment != nil {
-			if err := tx.Model(equipmentInvocation).Association("Equipment").Replace(equipmentInvocation.Equipment); err != nil {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Model(equipmentInvocation).Association("Equipment").Unscoped().Replace(equipmentInvocation.Equipment); err != nil {
 				return errs.NewRepositoryError("update", err)
 			}
 		}
@@ -160,6 +160,14 @@ func (r *PostgresEquipmentInvocationRepository) Search(ctx context.Context, req 
 
 	if req.UserID != nil {
 		query = query.Where("user_id = ?", *req.UserID)
+	}
+
+	if req.DepartmentID != nil {
+		query = query.Where("department_id = ?", *req.DepartmentID)
+	}
+
+	if req.OrganizationID != nil {
+		query = query.Where("organization_id = ?", *req.OrganizationID)
 	}
 
 	if err := query.Find(&invocations).Error; err != nil {

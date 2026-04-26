@@ -37,6 +37,9 @@ type SearchInvocationRequest struct {
 
 	AdminID *uuid.UUID
 	UserID  *uuid.UUID
+
+	DepartmentID   *uuid.UUID
+	OrganizationID *uuid.UUID
 }
 
 func (r *SearchInvocationRequest) nilize() {
@@ -60,6 +63,12 @@ func (r *SearchInvocationRequest) nilize() {
 	}
 	if r.UserID != nil && *r.UserID == uuid.Nil {
 		r.UserID = nil
+	}
+	if r.DepartmentID != nil && *r.DepartmentID == uuid.Nil {
+		r.DepartmentID = nil
+	}
+	if r.OrganizationID != nil && *r.OrganizationID == uuid.Nil {
+		r.OrganizationID = nil
 	}
 }
 

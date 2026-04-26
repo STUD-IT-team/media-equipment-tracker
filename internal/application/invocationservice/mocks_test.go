@@ -1,3 +1,5 @@
+//go:build unit
+
 package invocationservice_test
 
 import (

@@ -27,6 +27,8 @@ type EquipmentAvailabilityRequest struct {
 	ID        uuid.UUID `validate:"required"`
 	StartTime time.Time `validate:"required"`
 	EndTime   time.Time `validate:"required,gtfield=StartTime"`
+
+	ForInvocation *uuid.UUID `validate:"omitempty"`
 }
 
 type EquipmentAvailabilityResponse struct {
@@ -77,6 +79,15 @@ func (s *availabilityEquipmentService) Availability(ctx context.Context, req Equ
 		if err != nil {
 			return err
 		}
+		if req.ForInvocation != nil {
+			for i, inv := range invocations {
+				if inv.ID == *req.ForInvocation {
+					invocations = append(invocations[:i], invocations[i+1:]...)
+					break
+				}
+			}
+		}
+
 		available = len(invocations) == 0
 		return nil
 	}); err != nil {

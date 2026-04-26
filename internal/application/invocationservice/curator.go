@@ -200,7 +200,6 @@ func (s *curatorInvocationService) Issue(ctx context.Context, id, equipmentID uu
 		inv.Status = domain.InvocationEquipmentIssued
 		eqToIssue.Status = domain.EquipmentIssued
 		eqToIssue.Equipment.Status = domain.EquipmentStatusIssued
-
 		_, err = s.updateEquipmentService.UpdateEquipment(ctx, &equipmentservice.UpdateEquipmentRequest{
 			ID:     eqToIssue.EquipmentID,
 			Status: &eqToIssue.Equipment.Status,
