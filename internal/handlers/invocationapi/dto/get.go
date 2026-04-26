@@ -95,7 +95,6 @@ func SerializeGetInvocationResponse(_ *gin.Context, inv *domain.EquipmentInvocat
 
 	issuedEquipment := make([]getInvocationEquipment, 0, len(inv.Equipment))
 	for _, eq := range inv.Equipment {
-		// slog.Info("eq.Status", eq.Status)
 		if eq.Status == domain.EquipmentIssued {
 			issuedEquipment = append(issuedEquipment, getInvocationEquipment{
 				ID:                 eq.EquipmentID.String(),

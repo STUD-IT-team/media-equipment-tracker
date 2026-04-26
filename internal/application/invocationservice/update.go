@@ -112,7 +112,6 @@ func (s *updateInvocationService) Update(ctx context.Context, req *UpdateInvocat
 		}
 
 		if req.EquipmentIDs != nil {
-
 			inv.Equipment = make([]*domain.EquipmentInInvocation, 0, len(req.EquipmentIDs))
 			for _, id := range req.EquipmentIDs {
 				inv.Equipment = append(inv.Equipment, &domain.EquipmentInInvocation{
