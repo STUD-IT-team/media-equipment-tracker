@@ -23,11 +23,12 @@ func LoggerMiddleware() gin.HandlerFunc {
 			"duration":   time.Since(startTime),
 		})
 
-		if c.Writer.Status() >= 500 {
+		switch {
+		case c.Writer.Status() >= 500:
 			entry.Error(c.Errors.String())
-		} else if c.Writer.Status() >= 400 {
+		case c.Writer.Status() >= 400:
 			entry.Warn("Request completed with client error")
-		} else {
+		default:
 			entry.Info("Request completed successfully")
 		}
 	}

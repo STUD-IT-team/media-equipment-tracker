@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
+
 	"media-equipment-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	"media-equipment-tracker/pkg/txmanager/gormtx"
 
@@ -38,7 +39,7 @@ func main() {
 		gormtx.WithDatabase(config.PostgresDatabase),
 	)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logrus.Fatal("Failed to connect to database:", err)
 	}
 
 	// Repository

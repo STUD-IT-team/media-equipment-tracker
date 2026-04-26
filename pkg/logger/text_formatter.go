@@ -96,7 +96,6 @@ func errorToString(entry *logrus.Entry) string {
 		if err, ok := err.(error); ok {
 			return strings.TrimSuffix(fmt.Sprintf(": %s\n%s", err.Error(), getStack()), "\n")
 		}
-
 	}
 	return ""
 }
@@ -127,7 +126,9 @@ func formatHTTPInfo(entry *logrus.Entry) string {
 		case int:
 			statusCode = v
 		case string:
-			fmt.Sscanf(v, "%d", &statusCode)
+			if _, err := fmt.Sscanf(v, "%d", &statusCode); err != nil {
+				statusCode = 0
+			}
 		}
 		statusColor := getStatusColor(statusCode)
 		httpInfo.WriteString(fmt.Sprintf("-> %s%v%s ", statusColor, status, colorReset))
