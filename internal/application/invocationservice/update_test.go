@@ -20,16 +20,20 @@ import (
 type UpdateInvocationSuite struct {
 	suite.Suite
 
-	svc             invocationservice.UpdateInvocationService
-	invocationRepo  *InvocationRepoMock
-	availabilitySvc *AvailabilityEquipmentServiceMock
-	accessService   *AccessServiceMock
-	txManager       *TxManagerMock
-	auther          *AuthZMock
+	svc              invocationservice.UpdateInvocationService
+	invocationRepo   *InvocationRepoMock
+	departmentRepo   *DepartmentRepoMock
+	organizationRepo *OrganizationRepoMock
+	availabilitySvc  *AvailabilityEquipmentServiceMock
+	accessService    *AccessServiceMock
+	txManager        *TxManagerMock
+	auther           *AuthZMock
 }
 
 func (s *UpdateInvocationSuite) SetupTest() {
 	s.invocationRepo = new(InvocationRepoMock)
+	s.departmentRepo = new(DepartmentRepoMock)
+	s.organizationRepo = new(OrganizationRepoMock)
 	s.availabilitySvc = new(AvailabilityEquipmentServiceMock)
 	s.accessService = new(AccessServiceMock)
 	s.txManager = new(TxManagerMock)
@@ -37,6 +41,8 @@ func (s *UpdateInvocationSuite) SetupTest() {
 
 	s.svc = invocationservice.NewUpdateInvocationService(
 		s.invocationRepo,
+		s.departmentRepo,
+		s.organizationRepo,
 		s.availabilitySvc,
 		s.accessService,
 		s.txManager,
@@ -233,6 +239,92 @@ func (s *UpdateInvocationSuite) TestUpdate_NoAccess() {
 
 	s.Error(err)
 	s.True(errs.IsEquipmentAccessError(err))
+}
+
+func (s *UpdateInvocationSuite) TestUpdate_WithEquipment_Department() {
+	payload := domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}, UserID: uuid.New()}
+	invID := uuid.New()
+	deptID := uuid.New()
+	eqID := uuid.New()
+	start := time.Now().Add(time.Hour)
+	end := start.Add(time.Hour)
+	req := &invocationservice.UpdateInvocationRequest{
+		ID:           invID,
+		StartTime:    &start,
+		EndTime:      &end,
+		EquipmentIDs: []uuid.UUID{eqID},
+	}
+
+	dept := &domain.Department{ID: deptID}
+	inv := &domain.EquipmentInvocation{
+		ID:           invID,
+		UserID:       payload.UserID,
+		DepartmentID: &deptID,
+		Department:   dept,
+		StartTime:    time.Now(),
+		EndTime:      time.Now().Add(time.Minute),
+		Status:       domain.InvocationCreated,
+		Equipment:    []*domain.EquipmentInInvocation{},
+	}
+
+	ctx := context.Background()
+	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
+	s.invocationRepo.On("Get", mock.Anything, invID, mock.Anything).Return(inv, nil)
+	s.departmentRepo.On("Reload", mock.Anything, dept, mock.Anything).Return(nil)
+	s.availabilitySvc.On("Availability", mock.Anything, mock.AnythingOfType("equipmentservice.EquipmentAvailabilityRequest")).Return(&equipmentservice.EquipmentAvailabilityResponse{Available: true}, nil)
+	s.accessService.On("HaveAccessToEquipment", mock.Anything, mock.AnythingOfType("*accessservice.HaveEquipmentAccessRequest")).Return(true, nil)
+	s.invocationRepo.On("Update", mock.Anything, mock.AnythingOfType("*domain.EquipmentInvocation")).Return(nil)
+	s.invocationRepo.On("Reload", mock.Anything, mock.AnythingOfType("*domain.EquipmentInvocation"), mock.Anything).Return(nil)
+
+	result, err := s.svc.Update(ctx, req)
+
+	s.NoError(err)
+	s.Equal(start, result.StartTime)
+	s.Len(result.Equipment, 1)
+	s.Equal(eqID, result.Equipment[0].EquipmentID)
+}
+
+func (s *UpdateInvocationSuite) TestUpdate_WithEquipment_Organization() {
+	payload := domain.TokenPayload{Roles: []domain.RoleAuth{domain.AdminRole}, UserID: uuid.New()}
+	invID := uuid.New()
+	orgID := uuid.New()
+	eqID := uuid.New()
+	start := time.Now().Add(time.Hour)
+	end := start.Add(time.Hour)
+	req := &invocationservice.UpdateInvocationRequest{
+		ID:           invID,
+		StartTime:    &start,
+		EndTime:      &end,
+		EquipmentIDs: []uuid.UUID{eqID},
+	}
+
+	org := &domain.Organization{ID: orgID}
+	inv := &domain.EquipmentInvocation{
+		ID:             invID,
+		UserID:         payload.UserID,
+		OrganizationID: &orgID,
+		Organization:   org,
+		StartTime:      time.Now(),
+		EndTime:        time.Now().Add(time.Minute),
+		Status:         domain.InvocationCreated,
+		Equipment:      []*domain.EquipmentInInvocation{},
+	}
+
+	ctx := context.Background()
+	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
+	s.invocationRepo.On("Get", mock.Anything, invID, mock.Anything).Return(inv, nil)
+	s.organizationRepo.On("Reload", mock.Anything, org, mock.Anything).Return(nil)
+	s.availabilitySvc.On("Availability", mock.Anything, mock.AnythingOfType("equipmentservice.EquipmentAvailabilityRequest")).Return(&equipmentservice.EquipmentAvailabilityResponse{Available: true}, nil)
+	s.accessService.On("HaveAccessToEquipment", mock.Anything, mock.AnythingOfType("*accessservice.HaveEquipmentAccessRequest")).Return(true, nil)
+	s.invocationRepo.On("Update", mock.Anything, mock.AnythingOfType("*domain.EquipmentInvocation")).Return(nil)
+	s.invocationRepo.On("Reload", mock.Anything, mock.AnythingOfType("*domain.EquipmentInvocation"), mock.Anything).Return(nil)
+
+	result, err := s.svc.Update(ctx, req)
+
+	s.NoError(err)
+	s.Equal(start, result.StartTime)
+	s.Len(result.Equipment, 1)
+	s.Equal(eqID, result.Equipment[0].EquipmentID)
 }
 
 func (s *UpdateInvocationSuite) TestUpdateStatus_Success() {
