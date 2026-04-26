@@ -18,6 +18,7 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
+	"media-equipment-tracker/internal/adapters/postgres/pgstudioinvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
@@ -26,11 +27,14 @@ import (
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/studioservice"
+	"media-equipment-tracker/internal/application/studioservice/studiosearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
 	"media-equipment-tracker/internal/handlers/equipmentapi"
 	"media-equipment-tracker/internal/handlers/invocationapi"
+	"media-equipment-tracker/internal/handlers/studioapi"
 	"media-equipment-tracker/internal/middleware"
 )
 
@@ -57,6 +61,7 @@ func main() {
 	departmentRepo := pgdepartment.NewPostgresDepartmentRepository(dbGetter)
 	organizationRepo := pgorganization.NewPostgresOrganizationRepository(dbGetter)
 	invocationRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(dbGetter)
+	studioRepo := pgstudioinvocation.NewPostgresStudioInvocationRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
@@ -78,6 +83,7 @@ func main() {
 	accessService := accessservice.NewAccessService(authZ)
 	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
 	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
+	studioService := studioservice.NewStudioService(studioRepo, studiosearch.NewSearchStudioService(studioRepo), departmentRepo, organizationRepo, accessService, studiosearch.NewSearchStudioService(studioRepo), authZ, txManager)
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
@@ -101,6 +107,10 @@ func main() {
 	// Invocation
 	invocationRouter := invocationapi.NewRouter(usersGroup, invocationService)
 	_ = invocationRouter
+
+	// Studio
+	studioRouter := studioapi.NewRouter(usersGroup, studioService)
+	_ = studioRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())
