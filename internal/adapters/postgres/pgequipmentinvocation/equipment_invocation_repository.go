@@ -96,7 +96,7 @@ func (r *PostgresEquipmentInvocationRepository) Update(ctx context.Context, equi
 		}
 
 		if equipmentInvocation.Equipment != nil {
-			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Model(equipmentInvocation).Association("Equipment").Unscoped().Replace(equipmentInvocation.Equipment); err != nil {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Model(equipmentInvocation).Association("Equipment").Replace(equipmentInvocation.Equipment); err != nil {
 				return errs.NewRepositoryError("update", err)
 			}
 		}
