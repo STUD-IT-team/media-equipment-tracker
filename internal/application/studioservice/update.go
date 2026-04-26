@@ -171,6 +171,9 @@ func (s *updateStudioService) Update(ctx context.Context, req *UpdateStudioInvoc
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return inv, nil
 }

@@ -62,7 +62,7 @@ func (s *curatorStudioService) Become(ctx context.Context, id uuid.UUID) error {
 		}
 
 		if inv.AdminID != nil {
-			return errs.NewValidationError("EquipmentInvocation", "Invocation already has admin")
+			return errs.NewEntityAlreadyExistsError("Admin", "invocation already has admin")
 		}
 
 		inv.AdminID = &payload.UserID
@@ -203,7 +203,7 @@ func (s *curatorStudioService) Cancel(ctx context.Context, id uuid.UUID) error {
 			return err
 		}
 
-		if inv.UserID != payload.UserID && (inv.AdminID == nil || *inv.AdminID != payload.UserID) {
+		if inv.UserID != payload.UserID && (inv.AdminID == nil || *inv.AdminID != payload.UserID) && !slices.Contains(payload.Roles, domain.AdminRole) {
 			return errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
 		}
 

@@ -22,9 +22,9 @@ type CreateStudioInvocationRequest struct {
 	OrganizationID      *uuid.UUID `validate:"omitempty,required_without=DepartmentID"`
 	DepartmentID        *uuid.UUID `validate:"omitempty,required_without=OrganizationID"`
 
-	NeedsChromakey   bool `validate:"required"`
-	NeedsCyclorama   bool `validate:"required"`
-	NeedsBlackFabric bool `validate:"required"`
+	NeedsChromakey   bool
+	NeedsCyclorama   bool
+	NeedsBlackFabric bool
 }
 
 type CreateStudioService interface {
@@ -68,6 +68,10 @@ var _ CreateStudioService = (*createStudioService)(nil)
 func (s *createStudioService) Create(ctx context.Context, req *CreateStudioInvocationRequest) (*domain.StudioInvocation, error) {
 	if err := validate.ValidateStruct(req); err != nil {
 		return nil, errs.NewValidationError("CreateStudioInvocationRequest", err.Error())
+	}
+
+	if req.DepartmentID != nil && req.OrganizationID != nil || req.DepartmentID == nil && req.OrganizationID == nil {
+		return nil, errs.NewValidationError("CreateStudioInvocationRequest", "DepartmentID and OrganizationID are mutually exclusive")
 	}
 
 	payload, err := s.auther.TokenPayloadFromContext(ctx)

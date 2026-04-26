@@ -64,7 +64,7 @@ func (s *curatorInvocationService) Become(ctx context.Context, id uuid.UUID) err
 		}
 
 		if inv.AdminID != nil {
-			return errs.NewValidationError("EquipmentInvocation", "Invocation already has admin")
+			return errs.NewEntityAlreadyExistsError("Admin", "invocation already has admin")
 		}
 
 		inv.AdminID = &payload.UserID
