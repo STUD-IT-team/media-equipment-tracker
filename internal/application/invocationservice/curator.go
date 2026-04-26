@@ -17,7 +17,7 @@ import (
 type CuratorInvocationService interface {
 	Become(ctx context.Context, id uuid.UUID) error
 	Approve(ctx context.Context, id uuid.UUID) error
-	RequestReview(ctx context.Context, id uuid.UUID) error
+	RequestChanges(ctx context.Context, id uuid.UUID) error
 	Complete(ctx context.Context, id uuid.UUID) error
 	Cancel(ctx context.Context, id uuid.UUID) error
 	Issue(ctx context.Context, id, equipmentID uuid.UUID) error
@@ -63,6 +63,10 @@ func (s *curatorInvocationService) Become(ctx context.Context, id uuid.UUID) err
 			return err
 		}
 
+		if inv.AdminID != nil {
+			return errs.NewValidationError("EquipmentInvocation", "Invocation already has admin")
+		}
+
 		inv.AdminID = &payload.UserID
 		inv.Status = domain.InvocationUnderReview
 
@@ -97,6 +101,9 @@ func (s *curatorInvocationService) Approve(ctx context.Context, id uuid.UUID) er
 		if inv.AdminID == nil || *inv.AdminID != payload.UserID {
 			return errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
 		}
+		if inv.Status != domain.InvocationUnderReview {
+			return errs.NewValidationError("Status", fmt.Sprintf("can't approve invocation in status %s", inv.Status))
+		}
 
 		inv.Status = domain.InvocationApproved
 
@@ -113,7 +120,7 @@ func (s *curatorInvocationService) Approve(ctx context.Context, id uuid.UUID) er
 	return nil
 }
 
-func (s *curatorInvocationService) RequestReview(ctx context.Context, id uuid.UUID) error {
+func (s *curatorInvocationService) RequestChanges(ctx context.Context, id uuid.UUID) error {
 	payload, err := s.auther.TokenPayloadFromContext(ctx)
 	if err != nil {
 		return err
@@ -130,7 +137,11 @@ func (s *curatorInvocationService) RequestReview(ctx context.Context, id uuid.UU
 			return errs.NewRoleAuthError([]domain.RoleAuth{domain.AdminRole}, payload.Roles)
 		}
 
-		inv.Status = domain.InvocationUnderReview
+		if inv.Status != domain.InvocationUnderReview && inv.Status != domain.InvocationApproved {
+			return errs.NewValidationError("Status", fmt.Sprintf("can't request changes in status %s", inv.Status))
+		}
+
+		inv.Status = domain.InvocationChangesRequired
 
 		err = s.invocationRepo.Update(ctx, inv)
 		if err != nil {

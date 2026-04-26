@@ -59,7 +59,7 @@ func (s *accessService) HaveAccessToEquipment(ctx context.Context, req *HaveEqui
 			}
 		}
 		if userDep == nil {
-			return false, NewEquipmentAccessError("user not in specified department")
+			return false, errs.NewEquipmentAccessError("user not in specified department")
 		}
 
 		var equipment *domain.Equipment
@@ -72,17 +72,17 @@ func (s *accessService) HaveAccessToEquipment(ctx context.Context, req *HaveEqui
 
 		// Отделы имеют доступ только к своему оборудованию
 		if equipment == nil {
-			return false, NewEquipmentAccessError("department do not own specified equipment")
+			return false, errs.NewEquipmentAccessError("department do not own specified equipment")
 		}
 
 		// Стажеры только к стажёрскому оборудованию
 		if userDep.Role == domain.RoleTrainee && !equipment.AvailableToTrainee {
-			return false, NewEquipmentAccessError("user do not have access to activist's equipment (role is trainee)")
+			return false, errs.NewEquipmentAccessError("user do not have access to activist's equipment (role is trainee)")
 		}
 
 		// Если активсит не добри, то он может получить только стажёрское оборудование
 		if userDep.Role == domain.RoleActivist && !equipment.AvailableToTrainee && userDep.User.Nice < 60 {
-			return false, NewEquipmentAccessError("user do not have access to activist's equipment (nice < 60)")
+			return false, errs.NewEquipmentAccessError("user do not have access to activist's equipment (nice < 60)")
 		}
 
 		return true, nil
@@ -100,7 +100,7 @@ func (s *accessService) HaveAccessToEquipment(ctx context.Context, req *HaveEqui
 		}
 
 		if !found {
-			return false, NewEquipmentAccessError("user not in specified organization")
+			return false, errs.NewEquipmentAccessError("user not in specified organization")
 		}
 
 		// Организация имеет доступ к любому оборудовнию

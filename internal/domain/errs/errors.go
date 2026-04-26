@@ -107,6 +107,25 @@ func NewRoleAuthError(requiredRoles, actualRoles []domain.RoleAuth) RoleAuthErro
 	return RoleAuthError{RequiredRoles: requiredRoles, ActualRoles: actualRoles}
 }
 
+type EquipmentAccessError struct {
+	Message string
+}
+
+func (e EquipmentAccessError) Error() string {
+	return e.Message
+}
+
+func NewEquipmentAccessError(message string) EquipmentAccessError {
+	return EquipmentAccessError{
+		Message: message,
+	}
+}
+
+func IsEquipmentAccessError(err error) bool {
+	var e EquipmentAccessError
+	return errors.As(err, &e)
+}
+
 func IsRoleAuthError(err error) bool {
 	var e RoleAuthError
 	return errors.As(err, &e)

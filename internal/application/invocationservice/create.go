@@ -138,7 +138,7 @@ func (s *createInvocationService) Create(ctx context.Context, req *CreateInvocat
 			}
 
 			if !access {
-				return errs.NewValidationError("Equipment", fmt.Sprintf("equipment %s is not available", eq.EquipmentID))
+				return errs.NewEquipmentAccessError(fmt.Sprintf("Equipment %s is no accessible for current user (undefined reason)", eq.EquipmentID))
 			}
 		}
 
