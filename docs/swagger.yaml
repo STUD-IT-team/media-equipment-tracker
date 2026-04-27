@@ -1017,10 +1017,6 @@ paths:
           description: Заявка не найдена
         '500':
           description: Внутренняя ошибка сервера
-        '400':
-          description: Удаление недоступно
-        '403':
-          description: Нет прав на удаление
 
   /equipment-invocations/{id}/become-curator:
     post:
@@ -2676,7 +2672,7 @@ components:
                   type: string
                   format: date-time
 
-     ShortInvocationItem:
+    ShortInvocationItem:
       type: object
       properties:
         id:
