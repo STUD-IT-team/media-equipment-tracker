@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 
-	"media-equipment-tracker/pkg/logger"
-
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
+	"media-equipment-tracker/pkg/logger"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
 
 	"media-equipment-tracker/cmd/app/config"
@@ -28,6 +27,7 @@ import (
 	"media-equipment-tracker/internal/application/departmentservice"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/application/invocationservice"
+	"media-equipment-tracker/internal/application/userservice"
 
 	"media-equipment-tracker/internal/application/studioservice"
 
@@ -39,6 +39,7 @@ import (
 	"media-equipment-tracker/internal/handlers/departmentapi"
 	"media-equipment-tracker/internal/handlers/equipmentapi"
 	"media-equipment-tracker/internal/handlers/invocationapi"
+	"media-equipment-tracker/internal/handlers/userapi"
 
 	"media-equipment-tracker/internal/handlers/studioapi"
 
@@ -89,6 +90,11 @@ func main() {
 	}
 
 	// Services
+	userServ, err := userservice.NewUserService(userRepo, authZ, txManager)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	accessService := accessservice.NewAccessService(authZ)
 	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
 	departmentService := departmentservice.NewDepartmentService(authZ, departmentRepo, userRepo, equipmentRepo, txManager)
@@ -110,6 +116,8 @@ func main() {
 	// Routers
 	authUserRouter := authapi.NewRouter(apiGroup, authUserServ)
 	_ = authUserRouter
+	userRouter := userapi.NewUserRouter(usersGroup, userServ)
+	_ = userRouter
 
 	// Departments
 	departmentRouter := departmentapi.NewRouter(usersGroup, departmentService)

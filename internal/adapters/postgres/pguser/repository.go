@@ -36,6 +36,8 @@ func (r *PostgresUserRepository) Get(ctx context.Context, id uuid.UUID, opts ...
 		query = query.Preload(rel)
 	}
 
+	query = applyFilter(query, options.Filter())
+
 	err = query.First(&user, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -87,6 +89,8 @@ func (r *PostgresUserRepository) List(ctx context.Context, opts ...domain.UserOp
 	for _, rel := range options.Relations() {
 		query = query.Preload(rel)
 	}
+
+	query = applyFilter(query, options.Filter())
 
 	err = query.Find(&users).Error
 	if err != nil {
@@ -154,7 +158,7 @@ func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) 
 		}
 
 		if user.Departments != nil {
-			if err := tx.Model(user).Association("Departments").Replace(user.Departments); err != nil {
+			if err := tx.Model(user).Association("Departments").Unscoped().Replace(user.Departments); err != nil {
 				return errs.NewRepositoryError("update", err)
 			}
 		}
@@ -178,4 +182,16 @@ func (r *PostgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
+}
+func applyFilter(query *gorm.DB, filter *domain.UserFilter) *gorm.DB {
+	if filter == nil {
+		return query
+	}
+	if filter.FullName != "" {
+		query = query.Where("full_name ILIKE ?", "%"+filter.FullName+"%")
+	}
+	if filter.Email != "" {
+		query = query.Where("email ILIKE ?", "%"+filter.Email+"%")
+	}
+	return query
 }
