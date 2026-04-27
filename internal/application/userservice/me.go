@@ -13,8 +13,8 @@ import (
 
 type MeUserService interface {
 	Me(ctx context.Context) (*domain.User, error)
-	Update(ctx context.Context, req *UpdateSelfRequest) (*domain.User, error)
-	Invocations(ctx context.Context, req *MyInvocationsRequest) ([]*domain.EquipmentInvocation, error)
+	UpdateSelf(ctx context.Context, req *UpdateSelfRequest) (*domain.User, error)
+	Invocations(ctx context.Context, req *MyInvocationsRequest) (*MyInvocationsResponse, error)
 }
 
 type meUserService struct {
@@ -51,7 +51,7 @@ type UpdateSelfRequest struct {
 	Email    *string `validate:"omitempty,email"`
 }
 
-func (s *meUserService) Update(ctx context.Context, req *UpdateSelfRequest) (*domain.User, error) {
+func (s *meUserService) UpdateSelf(ctx context.Context, req *UpdateSelfRequest) (*domain.User, error) {
 	if err := validate.ValidateStruct(req); err != nil {
 		return nil, errs.NewValidationError("UpdateSelfRequest", err.Error())
 	}
@@ -111,7 +111,7 @@ type MyInvocationsResponse struct {
 	AdminStudioInvocations    []*domain.StudioInvocation
 }
 
-func (s *meUserService) Invocations(ctx context.Context, req *MyInvocationsRequest) ([]*domain.EquipmentInvocation, error) {
+func (s *meUserService) Invocations(ctx context.Context, req *MyInvocationsRequest) (*MyInvocationsResponse, error) {
 	if err := validate.ValidateStruct(req); err != nil {
 		return nil, errs.NewValidationError("MyInvocationsRequest", err.Error())
 	}
@@ -147,28 +147,28 @@ func (s *meUserService) Invocations(ctx context.Context, req *MyInvocationsReque
 
 	if req.Type == Equipment || req.Type == All {
 		for _, inv := range user.EquipmentInvocations {
-			if len(req.EquipmentStatuses) > 0 && slices.Contains(req.EquipmentStatuses, inv.Status) {
+			if len(req.EquipmentStatuses) == 0 || slices.Contains(req.EquipmentStatuses, inv.Status) {
 				resp.EquipmentInvocations = append(resp.EquipmentInvocations, inv)
 			}
 		}
 		for _, inv := range user.AdminEquipmentInvocations {
-			if len(req.EquipmentStatuses) > 0 && slices.Contains(req.EquipmentStatuses, inv.Status) {
+			if len(req.EquipmentStatuses) == 0 || slices.Contains(req.EquipmentStatuses, inv.Status) {
 				resp.AdminEquipmentInvocations = append(resp.AdminEquipmentInvocations, inv)
 			}
 		}
 	}
 	if req.Type == Studio || req.Type == All {
 		for _, inv := range user.StudioInvocations {
-			if len(req.StudioStatuses) > 0 && slices.Contains(req.StudioStatuses, inv.Status) {
+			if len(req.StudioStatuses) == 0 || slices.Contains(req.StudioStatuses, inv.Status) {
 				resp.StudioInvocations = append(resp.StudioInvocations, inv)
 			}
 		}
 		for _, inv := range user.AdminStudioInvocations {
-			if len(req.StudioStatuses) > 0 && slices.Contains(req.StudioStatuses, inv.Status) {
+			if len(req.StudioStatuses) == 0 || slices.Contains(req.StudioStatuses, inv.Status) {
 				resp.AdminStudioInvocations = append(resp.AdminStudioInvocations, inv)
 			}
 		}
 	}
 
-	return resp.EquipmentInvocations, nil
+	return resp, nil
 }

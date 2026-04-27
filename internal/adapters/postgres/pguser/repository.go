@@ -158,7 +158,7 @@ func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) 
 		}
 
 		if user.Departments != nil {
-			if err := tx.Model(user).Association("Departments").Replace(user.Departments); err != nil {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Model(user).Association("Departments").Unscoped().Replace(user.Departments); err != nil {
 				return errs.NewRepositoryError("update", err)
 			}
 		}

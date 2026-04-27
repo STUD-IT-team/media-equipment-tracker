@@ -1,12 +1,10 @@
 package userapi
 
 import (
-	"errors"
 	"media-equipment-tracker/internal/application/userservice"
-	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/handlers/userapi/dto"
-	"net/http"
+	"media-equipment-tracker/internal/utils/ginerror"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,74 +17,195 @@ func NewUserRouter(router *gin.RouterGroup, service userservice.UserService) Use
 	r := UserRouter{
 		service: service,
 	}
-	gr := router.Group("users")
-	gr.GET("/me", r.GetMe)
-	gr.PATCH("/me", r.UpdateMe)
-	//gr.PATCH("/me/invocations", r.GetMyInvocations) // TODO: нужен invocationService
-	//gr.POST("/logout", r.Logout)
+	gr := router.Group("/users")
+	gr.GET("", r.GetAllUsers)
+	gr.GET("/:id", r.GetUser)
+	gr.PATCH("/:id", r.UpdateUser)
+	gr.PATCH("/:id/nice", r.UpdateNice)
+
+	gr.GET("/me", r.Me)
+	gr.GET("/me/invocations", r.MyInvocations)
+	gr.PATCH("/me", r.UpdateSelf)
+
 	return r
 }
 
-func (r *UserRouter) GetMe(c *gin.Context) {
+func (r *UserRouter) GetAllUsers(c *gin.Context) {
 	ctx := c.Request.Context()
-	user, err := r.service.GetCurrent(ctx)
+
+	users, err := r.service.GetAll(ctx)
+
 	if err != nil {
-		if errors.Is(err, errs.EntityNotFoundError{}) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, dto.UserToUserResponse(user))
+
+	c.JSON(200, dto.SerializeGetAllUsersResponse(c, users))
 }
 
-func (r *UserRouter) UpdateMe(c *gin.Context) {
+func (r *UserRouter) GetUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req dto.UpdateUserDto
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	id, err := dto.DeserializeGetUserRequest(c)
+	if err != nil {
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("id", err.Error())))
 		return
 	}
-	user, err := r.service.GetCurrent(ctx)
+
+	user, err := r.service.Get(ctx, id)
 	if err != nil {
-		if errors.Is(err, errs.EntityNotFoundError{}) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
-	user.FullName = req.FullName
-	user.Email = req.Email
-	updatedUser, err := r.service.Update(ctx, user)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, dto.UserToUserResponse(updatedUser))
+
+	c.JSON(200, dto.SerializeGetUserResponse(c, user))
 }
 
-// TODO: нужен invocationService
-func (r *UserRouter) GetMyInvocations(c *gin.Context) {
+func (r *UserRouter) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	var filter dto.InvocationFilterDto
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	req, err := dto.DeserializeUpdateUserRequest(c)
+	if err != nil {
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("UpdateUserRequest", err.Error())))
 		return
 	}
-	users, err := r.service.GetAll(ctx, domain.UserWithEquipmentInvocations(), domain.UserWithStudioInvocations())
+
+	user, err := r.service.Update(ctx, req)
 	if err != nil {
-		if errors.Is(err, errs.EntityNotFoundError{}) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsEntityAlreadyExistsError(err):
+			c.JSON(409, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
 		}
 		return
 	}
-	userInvocationsResponses := make([]dto.UserInvocationsResponse, 0)
-	for _, user := range users {
-		userInvocationsResponses = append(userInvocationsResponses, dto.UserToUserInvocationsResponse(user))
+
+	c.JSON(200, dto.SerializeUpdateUserResponse(c, user))
+}
+
+func (r *UserRouter) UpdateNice(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	req, err := dto.DeserializeUpdateNiceRequest(c)
+	if err != nil {
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("UpdateNiceRequest", err.Error())))
+		return
 	}
-	c.JSON(http.StatusOK, userInvocationsResponses)
+
+	user, err := r.service.UpdateNice(ctx, req)
+	if err != nil {
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
+		}
+		return
+	}
+
+	c.JSON(200, dto.SerializeUpdateNiceResponse(c, user))
+}
+
+func (r *UserRouter) Me(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	user, err := r.service.Me(ctx)
+	if err != nil {
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
+		}
+		return
+	}
+
+	c.JSON(200, dto.SerializeMeUserResponse(c, user))
+}
+
+func (r *UserRouter) UpdateSelf(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	req, err := dto.DeserializeUpdateSelfRequest(c)
+	if err != nil {
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("UpdateUserRequest", err.Error())))
+		return
+	}
+
+	user, err := r.service.UpdateSelf(ctx, req)
+	if err != nil {
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
+		}
+		return
+	}
+
+	c.JSON(200, dto.SerializeUpdateSelfResponse(c, user))
+}
+
+func (r *UserRouter) MyInvocations(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	req, err := dto.DeserializeMyInvocationsRequest(c)
+	if err != nil {
+		c.JSON(400, ginerror.ErrJSONBody(errs.NewValidationError("MyInvocationsRequest", err.Error())))
+		return
+	}
+
+	invs, err := r.service.Invocations(ctx, req)
+	if err != nil {
+		switch {
+		case errs.IsEntityNotFoundError(err):
+			c.JSON(404, ginerror.ErrJSONBody(err))
+		case errs.IsValidationError(err):
+			c.JSON(400, ginerror.ErrJSONBody(err))
+		case errs.IsRoleAuthError(err):
+			c.JSON(403, ginerror.ErrJSONBody(err))
+		default:
+			c.JSON(500, ginerror.ErrJSONBody(err))
+		}
+		return
+	}
+
+	c.JSON(200, dto.SerializeMyInvocationsResponse(c, invs))
 }

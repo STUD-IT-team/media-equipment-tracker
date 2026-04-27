@@ -13,13 +13,13 @@ import (
 )
 
 type UpdateUserRequest struct {
-	ID              uuid.UUID              `validate:"required"`
-	FullName        *string                `validate:"omitempty"`
-	Email           *string                `validate:"omitempty,email"`
-	Nice            *int                   `validate:"omitempty,min=0,max=100"`
-	IsAdmin         *bool                  `validate:"omitempty"`
-	OrganizationIDs []uuid.UUID            `validate:"omitempty,dive,required"`
-	Departments     []UpdateUserDepartment `validate:"omitempty,dive"`
+	ID              uuid.UUID   `validate:"required"`
+	FullName        *string     `validate:"omitempty"`
+	Email           *string     `validate:"omitempty,email"`
+	Nice            *int        `validate:"omitempty,min=0,max=100"`
+	IsAdmin         *bool       `validate:"omitempty"`
+	OrganizationIDs []uuid.UUID `validate:"omitempty"`
+	Departments     []UpdateUserDepartment
 }
 
 type UpdateUserDepartment struct {

@@ -12,12 +12,16 @@ import (
 )
 
 type UserService interface {
+	UpdateUserService
+	MeUserService
 	Get(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetAll(ctx context.Context) ([]*domain.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type userService struct {
+	UpdateUserService
+	MeUserService
 	userRep domain.UserRepository
 	authz   authzservice.AuthZ
 	txm     txmanager.TxManager
@@ -29,9 +33,11 @@ func NewUserService(
 	txm txmanager.TxManager,
 ) (UserService, error) {
 	service := &userService{
-		userRep: userRep,
-		authz:   authz,
-		txm:     txm,
+		UpdateUserService: NewUpdateUserService(userRep, txm, authz),
+		MeUserService:     NewMeUserService(userRep, authz, txm),
+		userRep:           userRep,
+		authz:             authz,
+		txm:               txm,
 	}
 	return service, nil
 }
@@ -85,7 +91,7 @@ func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
 		return errs.NewValidationError("id", "can't delete current user")
 	}
 
-	s.txm.WithinTx(ctx, func(ctx context.Context) error {
+	err = s.txm.WithinTx(ctx, func(ctx context.Context) error {
 		user, err := s.userRep.Get(ctx, id, domain.UserWithStudioInvocations(), domain.UserWithEquipmentInvocations())
 		if err != nil {
 			return err

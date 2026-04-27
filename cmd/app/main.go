@@ -76,7 +76,7 @@ func main() {
 	}
 
 	// Services
-	userServ, err := userservice.NewUserService(userRepo, authZ)
+	userServ, err := userservice.NewUserService(userRepo, authZ, txManager)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -101,8 +101,6 @@ func main() {
 	_ = authUserRouter
 	userRouter := userapi.NewUserRouter(usersGroup, userServ)
 	_ = userRouter
-	userRouterForAdmin := userapi.NewUserRouterForAdmin(adminsGroup, userServ)
-	_ = userRouterForAdmin
 
 	// Equipment
 	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
