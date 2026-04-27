@@ -34,7 +34,7 @@ func NewDepartmentService(
 	txManager txmanager.TxManager,
 ) DepartmentService {
 	return &departmentService{
-		CreateDepartmentService:   NewCreateDepartmentService(auther, departmentRepository, txManager),
+		CreateDepartmentService:   NewCreateDepartmentService(auther, departmentRepository),
 		ListDepartmentService:     NewListDepartmentService(departmentRepository),
 		GetDepartmentService:      NewGetDepartmentService(departmentRepository),
 		UpdateDepartmentService:   NewUpdateDepartmentService(auther, departmentRepository, txManager),

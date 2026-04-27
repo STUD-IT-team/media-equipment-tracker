@@ -20,15 +20,13 @@ type CreateDepartmentSuite struct {
 	svc            departmentservice.CreateDepartmentService
 	departmentRepo *DepartmentRepoMock
 	auther         *AuthZMock
-	txManager      *TxManagerMock
 }
 
 func (s *CreateDepartmentSuite) SetupTest() {
 	s.departmentRepo = new(DepartmentRepoMock)
 	s.auther = new(AuthZMock)
-	s.txManager = new(TxManagerMock)
 
-	s.svc = departmentservice.NewCreateDepartmentService(s.auther, s.departmentRepo, s.txManager)
+	s.svc = departmentservice.NewCreateDepartmentService(s.auther, s.departmentRepo)
 }
 
 func (s *CreateDepartmentSuite) TestCreateDepartment_Success() {
@@ -39,12 +37,7 @@ func (s *CreateDepartmentSuite) TestCreateDepartment_Success() {
 
 	ctx := context.Background()
 	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
-	s.txManager.On("WithinTx", ctx, mock.AnythingOfType("func(context.Context) error")).Return(nil).Run(func(args mock.Arguments) {
-		fn := args.Get(1).(func(context.Context) error)
-		s.departmentRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.Department")).Return(nil)
-		err := fn(ctx)
-		s.NoError(err)
-	})
+	s.departmentRepo.On("Create", ctx, mock.AnythingOfType("*domain.Department")).Return(nil)
 
 	result, err := s.svc.CreateDepartment(ctx, req)
 

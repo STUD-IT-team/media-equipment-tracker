@@ -8,7 +8,6 @@ import (
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
-	"media-equipment-tracker/pkg/txmanager"
 
 	"github.com/google/uuid"
 )
@@ -24,7 +23,6 @@ type CreateOrganizationService interface {
 type createOrganizationService struct {
 	organizationRepository domain.OrganizationRepository
 	auther                 authzservice.AuthZ
-	t                      txmanager.TxManager
 }
 
 var _ CreateOrganizationService = (*createOrganizationService)(nil)
@@ -32,12 +30,10 @@ var _ CreateOrganizationService = (*createOrganizationService)(nil)
 func NewCreateOrganizationService(
 	auther authzservice.AuthZ,
 	organizationRepository domain.OrganizationRepository,
-	txManager txmanager.TxManager,
 ) CreateOrganizationService {
 	return &createOrganizationService{
 		organizationRepository: organizationRepository,
 		auther:                 auther,
-		t:                      txManager,
 	}
 }
 

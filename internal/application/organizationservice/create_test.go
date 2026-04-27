@@ -20,15 +20,13 @@ type CreateOrganizationSuite struct {
 	svc              organizationservice.CreateOrganizationService
 	organizationRepo *OrganizationRepoMock
 	auther           *AuthZMock
-	txManager        *TxManagerMock
 }
 
 func (s *CreateOrganizationSuite) SetupTest() {
 	s.organizationRepo = new(OrganizationRepoMock)
 	s.auther = new(AuthZMock)
-	s.txManager = new(TxManagerMock)
 
-	s.svc = organizationservice.NewCreateOrganizationService(s.auther, s.organizationRepo, s.txManager)
+	s.svc = organizationservice.NewCreateOrganizationService(s.auther, s.organizationRepo)
 }
 
 func (s *CreateOrganizationSuite) TestCreateOrganization_Success() {
@@ -39,12 +37,7 @@ func (s *CreateOrganizationSuite) TestCreateOrganization_Success() {
 
 	ctx := context.Background()
 	s.auther.On("TokenPayloadFromContext", ctx).Return(payload, nil)
-	s.txManager.On("WithinTx", ctx, mock.AnythingOfType("func(context.Context) error")).Return(nil).Run(func(args mock.Arguments) {
-		fn := args.Get(1).(func(context.Context) error)
-		s.organizationRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.Organization")).Return(nil)
-		err := fn(ctx)
-		s.NoError(err)
-	})
+	s.organizationRepo.On("Create", ctx, mock.AnythingOfType("*domain.Organization")).Return(nil)
 
 	result, err := s.svc.CreateOrganization(ctx, req)
 

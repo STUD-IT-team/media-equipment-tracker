@@ -8,7 +8,6 @@ import (
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
-	"media-equipment-tracker/pkg/txmanager"
 
 	"github.com/google/uuid"
 )
@@ -24,7 +23,6 @@ type CreateDepartmentService interface {
 type createDepartmentService struct {
 	departmentRepository domain.DepartmentRepository
 	auther               authzservice.AuthZ
-	t                    txmanager.TxManager
 }
 
 var _ CreateDepartmentService = (*createDepartmentService)(nil)
@@ -32,12 +30,10 @@ var _ CreateDepartmentService = (*createDepartmentService)(nil)
 func NewCreateDepartmentService(
 	auther authzservice.AuthZ,
 	departmentRepository domain.DepartmentRepository,
-	txManager txmanager.TxManager,
 ) CreateDepartmentService {
 	return &createDepartmentService{
 		departmentRepository: departmentRepository,
 		auther:               auther,
-		t:                    txManager,
 	}
 }
 

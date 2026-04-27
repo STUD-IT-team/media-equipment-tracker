@@ -32,7 +32,7 @@ func NewOrganizationService(
 	txManager txmanager.TxManager,
 ) OrganizationService {
 	return &organizationService{
-		CreateOrganizationService:   NewCreateOrganizationService(auther, organizationRepository, txManager),
+		CreateOrganizationService:   NewCreateOrganizationService(auther, organizationRepository),
 		ListOrganizationService:     NewListOrganizationService(organizationRepository),
 		GetOrganizationService:      NewGetOrganizationService(organizationRepository),
 		UpdateOrganizationService:   NewUpdateOrganizationService(auther, organizationRepository, txManager),
