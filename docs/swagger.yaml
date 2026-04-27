@@ -141,189 +141,189 @@ paths:
 
   # ==================== USERS ====================
   
-   /users/me:
-     get:
-       tags: [Users]
-       summary: Получить текущего пользователя
-       security:
-         - bearerAuth: []
-       responses:
-         '200':
-           description: Информация о пользователе
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/MeUserResponse'
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Получить текущего пользователя
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeUserResponse'
 
-     patch:
-       tags: [Users]
-       summary: Обновить профиль текущего пользователя
-       security:
-         - bearerAuth: []
-       requestBody:
-         required: true
-         content:
-           application/json:
-             schema:
-               $ref: '#/components/schemas/UpdateUserDto'
-       responses:
-         '200':
-           description: Профиль обновлён
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/ShortUserResponse'
+    patch:
+      tags: [Users]
+      summary: Обновить профиль текущего пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserDto'
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUserResponse'
 
-   /users/me/invocations:
-     get:
-       tags: [Users]
-       summary: Получить все бронирования текущего пользователя
-       description: Объединённый список заявок на оборудование и студию
-       security:
-         - bearerAuth: []
-       parameters:
-         - name: statuses
-           in: query
-           schema:
-             type: array
-             items:
-               type: string
-               enum: [created, under_review, changes_required, approved, equipment_issued, equipment_returned, completed, cancelled]
-             description: Фильтр по статусам заявок
-         - name: type
-           in: query
-           schema:
-             type: string
-             enum: [equipment, studio, all]
-             default: all
-       responses:
-         '200':
-           description: Список бронирований
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/MyInvocationsResponse'
+  /users/me/invocations:
+    get:
+      tags: [Users]
+      summary: Получить все бронирования текущего пользователя
+      description: Объединённый список заявок на оборудование и студию
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: statuses
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [created, under_review, changes_required, approved, equipment_issued, equipment_returned, completed, cancelled]
+            description: Фильтр по статусам заявок
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [equipment, studio, all]
+            default: all
+      responses:
+        '200':
+          description: Список бронирований
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyInvocationsResponse'
 
-   /users:
-     get:
-       tags: [Users]
-       summary: Список всех пользователей (Admin only)
-       security:
-         - bearerAuth: []
-       parameters:
-         - name: full_name
-           in: query
-           schema:
-             type: string
-           description: Фильтр по полному имени (частичное совпадение)
-           example: "Иван"
-         - name: email
-           in: query
-           schema:
-             type: string
-           description: Фильтр по email (частичное совпадение)
-           example: "user@example.com"
-       responses:
-         '200':
-           description: Список пользователей
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/GetAllUsersResponse'
-         '403':
-           description: Доступ запрещён
+  /users:
+    get:
+      tags: [Users]
+      summary: Список всех пользователей (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: full_name
+          in: query
+          schema:
+            type: string
+          description: Фильтр по полному имени (частичное совпадение)
+          example: "Иван"
+        - name: email
+          in: query
+          schema:
+            type: string
+          description: Фильтр по email (частичное совпадение)
+          example: "user@example.com"
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAllUsersResponse'
+        '403':
+          description: Доступ запрещён
 
-   /users/{id}:
-     get:
-       tags: [Users]
-       summary: Получить пользователя по ID (Admin only)
-       security:
-         - bearerAuth: []
-       parameters:
-         - name: id
-           in: path
-           required: true
-           schema:
-             type: string
-             format: uuid
-       responses:
-         '200':
-           description: Информация о пользователе
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/GetUserResponse'
-         '403':
-           description: Доступ запрещён
-         '404':
-           description: Пользователь не найден
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Получить пользователя по ID (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserResponse'
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Пользователь не найден
 
-     patch:
-       tags: [Users]
-       summary: Обновить пользователя (Admin only)
-       security:
-         - bearerAuth: []
-       parameters:
-         - name: id
-           in: path
-           required: true
-           schema:
-             type: string
-             format: uuid
-       requestBody:
-         required: true
-         content:
-           application/json:
-             schema:
-               $ref: '#/components/schemas/UpdateUserAdminDto'
-       responses:
-         '200':
-           description: Пользователь обновлён
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/ShortUserResponse'
-         '400':
-           description: Невалидные данные или конфликт
-         '403':
-           description: Доступ запрещён
-         '404':
-           description: Пользователь не найден
-         '409':
-           description: Email уже используется
+    patch:
+      tags: [Users]
+      summary: Обновить пользователя (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserAdminDto'
+      responses:
+        '200':
+          description: Пользователь обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUserResponse'
+        '400':
+          description: Невалидные данные или конфликт
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Пользователь не найден
+        '409':
+          description: Email уже используется
 
-   /users/{id}/nice:
-     patch:
-       tags: [Users]
-       summary: Обновить баллы порядочности пользователя (Admin only)
-       security:
-         - bearerAuth: []
-       parameters:
-         - name: id
-           in: path
-           required: true
-           schema:
-             type: string
-             format: uuid
-       requestBody:
-         required: true
-         content:
-           application/json:
-             schema:
-               $ref: '#/components/schemas/UpdateNiceDto'
-       responses:
-         '200':
-           description: Баллы обновлены
-           content:
-             application/json:
-               schema:
-                 $ref: '#/components/schemas/ShortUserResponse'
-         '400':
-           description: Невалидные данные
-         '403':
-           description: Доступ запрещён
-         '404':
-           description: Пользователь не найден
+  /users/{id}/nice:
+    patch:
+      tags: [Users]
+      summary: Обновить баллы порядочности пользователя (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNiceDto'
+      responses:
+        '200':
+          description: Баллы обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUserResponse'
+        '400':
+          description: Невалидные данные
+        '403':
+          description: Доступ запрещён
+        '404':
+          description: Пользователь не найден
 
    # ==================== ORGANIZATIONS ====================
   
@@ -1856,328 +1856,328 @@ components:
         password:
           type: string
 
-     UpdateUserDto:
-       type: object
-       properties:
-         full_name:
-           type: string
-           maxLength: 255
-           example: "Иванов Иван Иванович"
-         email:
-           type: string
-           format: email
-           example: "ivan@example.com"
+    UpdateUserDto:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          example: "Иванов Иван Иванович"
+        email:
+          type: string
+          format: email
+          example: "ivan@example.com"
 
-     UpdateUserAdminDto:
-       type: object
-       properties:
-         full_name:
-           type: string
-           maxLength: 255
-           description: Новое ФИО пользователя
-           example: "Иванов Иван Иванович"
-         email:
-           type: string
-           format: email
-           description: Новый email (должен быть уникальным)
-           example: "ivan@example.com"
-         nice:
-           type: integer
-           minimum: 1
-           description: Баллы порядочности
-           example: 150
-         is_admin:
-           type: boolean
-           description: Назначить/снять права администратора
-         organizations_ids:
-           type: array
-           description: Список ID организаций пользователя
-           items:
-             type: string
-             format: uuid
-         departments:
-           type: array
-           description: Список отделов и ролей пользователя
-           items:
-             type: object
-             required: [id, role]
-             properties:
-               id:
-                 type: string
-                 format: uuid
-                 description: ID отдела
-               role:
-                 type: string
-                 enum: [trainee, activist]
-                 description: Роль в отделе
+    UpdateUserAdminDto:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Новое ФИО пользователя
+          example: "Иванов Иван Иванович"
+        email:
+          type: string
+          format: email
+          description: Новый email (должен быть уникальным)
+          example: "ivan@example.com"
+        nice:
+          type: integer
+          minimum: 1
+          description: Баллы порядочности
+          example: 150
+        is_admin:
+          type: boolean
+          description: Назначить/снять права администратора
+        organizations_ids:
+          type: array
+          description: Список ID организаций пользователя
+          items:
+            type: string
+            format: uuid
+        departments:
+          type: array
+          description: Список отделов и ролей пользователя
+          items:
+            type: object
+            required: [id, role]
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: ID отдела
+              role:
+                type: string
+                enum: [trainee, activist]
+                description: Роль в отделе
 
-     UpdateNiceDto:
-       type: object
-       required: [nice]
-       properties:
-         nice:
-           type: integer
-           minimum: 1
-           description: Новое значение баллов порядочности
-           example: 150
+    UpdateNiceDto:
+      type: object
+      required: [nice]
+      properties:
+        nice:
+          type: integer
+          minimum: 1
+          description: Новое значение баллов порядочности
+          example: 150
 
-     ShortUserResponse:
-       type: object
-       properties:
-         id:
-           type: string
-           format: uuid
-         full_name:
-           type: string
-         email:
-           type: string
-           format: email
-         nice:
-           type: integer
-         is_admin:
-           type: boolean
+    ShortUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        nice:
+          type: integer
+        is_admin:
+          type: boolean
 
-     MeUserResponse:
-       type: object
-       properties:
-         id:
-           type: string
-           format: uuid
-         full_name:
-           type: string
-         email:
-           type: string
-           format: email
-         nice:
-           type: integer
-         is_admin:
-           type: boolean
-         organizations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               name:
-                 type: string
-         departments:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               name:
-                 type: string
-               role:
-                 type: string
+    MeUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        nice:
+          type: integer
+        is_admin:
+          type: boolean
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        departments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              role:
+                type: string
 
-     GetAllUsersResponse:
-       type: object
-       properties:
-         items:
-           type: array
-           items:
-             $ref: '#/components/schemas/ShortUserResponse'
+    GetAllUsersResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShortUserResponse'
 
-     GetUserResponse:
-       type: object
-       properties:
-         id:
-           type: string
-           format: uuid
-         full_name:
-           type: string
-         email:
-           type: string
-           format: email
-         nice:
-           type: integer
-         is_admin:
-           type: boolean
-         organizations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               name:
-                 type: string
-         departments:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               name:
-                 type: string
-               role:
-                 type: string
-         studio_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               eventName:
-                 type: string
-               shootingDescription:
-                 type: string
-               status:
-                 type: string
-               startTime:
-                 type: string
-                 format: date-time
-               endTime:
-                 type: string
-                 format: date-time
-         equipment_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               eventName:
-                 type: string
-               status:
-                 type: string
-               startTime:
-                 type: string
-                 format: date-time
-               endTime:
-                 type: string
-                 format: date-time
-         admin_studio_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               eventName:
-                 type: string
-               shootingDescription:
-                 type: string
-               status:
-                 type: string
-               startTime:
-                 type: string
-                 format: date-time
-               endTime:
-                 type: string
-                 format: date-time
-         admin_equipment_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               eventName:
-                 type: string
-               status:
-                 type: string
-               startTime:
-                 type: string
-                 format: date-time
-               endTime:
-                 type: string
-                 format: date-time
+    GetUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        nice:
+          type: integer
+        is_admin:
+          type: boolean
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        departments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              role:
+                type: string
+        studio_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              eventName:
+                type: string
+              shootingDescription:
+                type: string
+              status:
+                type: string
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+        equipment_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              eventName:
+                type: string
+              status:
+                type: string
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+        admin_studio_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              eventName:
+                type: string
+              shootingDescription:
+                type: string
+              status:
+                type: string
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+        admin_equipment_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              eventName:
+                type: string
+              status:
+                type: string
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
 
-     MyInvocationsResponse:
-       type: object
-       properties:
-         equipment_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               event_name:
-                 type: string
-               status:
-                 type: string
-               start_time:
-                 type: string
-                 format: date-time
-               end_time:
-                 type: string
-                 format: date-time
-         studio_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               event_name:
-                 type: string
-               shooting_description:
-                 type: string
-               status:
-                 type: string
-               start_time:
-                 type: string
-                 format: date-time
-               end_time:
-                 type: string
-                 format: date-time
-         admin_equipment_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               event_name:
-                 type: string
-               status:
-                 type: string
-               start_time:
-                 type: string
-                 format: date-time
-               end_time:
-                 type: string
-                 format: date-time
-         admin_studio_invocations:
-           type: array
-           items:
-             type: object
-             properties:
-               id:
-                 type: string
-                 format: uuid
-               event_name:
-                 type: string
-               shooting_description:
-                 type: string
-               status:
-                 type: string
-               start_time:
-                 type: string
-                 format: date-time
-               end_time:
-                 type: string
-                 format: date-time
+    MyInvocationsResponse:
+      type: object
+      properties:
+        equipment_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              event_name:
+                type: string
+              status:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              end_time:
+                type: string
+                format: date-time
+        studio_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              event_name:
+                type: string
+              shooting_description:
+                type: string
+              status:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              end_time:
+                type: string
+                format: date-time
+        admin_equipment_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              event_name:
+                type: string
+              status:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              end_time:
+                type: string
+                format: date-time
+        admin_studio_invocations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              event_name:
+                type: string
+              shooting_description:
+                type: string
+              status:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              end_time:
+                type: string
+                format: date-time
 
-     CreateOrganizationDto:
+    CreateOrganizationDto:
       type: object
       required: [name]
       properties:
