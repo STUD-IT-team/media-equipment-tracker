@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"media-equipment-tracker/internal/application/studioservice/studiosearch"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager/gormtx"
@@ -99,4 +100,42 @@ func (r *PostgresStudioInvocationRepository) Delete(ctx context.Context, id uuid
 		return errs.NewRepositoryError("delete", err)
 	}
 	return nil
+}
+
+func (r *PostgresStudioInvocationRepository) Search(ctx context.Context, search *studiosearch.SearchStudioInvocationRequest, with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
+	var invocations []*domain.StudioInvocation
+	query := r.applyOptions(ctx, with)
+	if search.SearchString != nil {
+		query = query.Where("event_name like ?", "%"+*search.SearchString+"%").Or("shooting_description like ?", "%"+*search.SearchString+"%")
+	}
+
+	// Если хотя бы кусочек события в промежутке, то подходит
+	if search.StartTime != nil {
+		query = query.Where("end_time >= ?", *search.StartTime)
+	}
+	if search.EndTime != nil {
+		query = query.Where("start_time <= ?", *search.EndTime)
+	}
+
+	if search.AdminID != nil {
+		query = query.Where("admin_id = ?", *search.AdminID)
+	}
+
+	if search.UserID != nil {
+		query = query.Where("user_id = ?", *search.UserID)
+	}
+
+	if search.DepartmentID != nil {
+		query = query.Where("department_id = ?", *search.DepartmentID)
+	}
+
+	if search.OrganizationID != nil {
+		query = query.Where("organization_id = ?", *search.OrganizationID)
+	}
+
+	if err := query.Find(&invocations).Error; err != nil {
+		return nil, errs.NewRepositoryError("search", err)
+	}
+
+	return invocations, nil
 }

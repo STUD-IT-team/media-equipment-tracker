@@ -121,6 +121,25 @@ func NewEquipmentAccessError(message string) EquipmentAccessError {
 	}
 }
 
+type StudioAccessError struct {
+	Message string
+}
+
+func (e StudioAccessError) Error() string {
+	return e.Message
+}
+
+func NewStudioAccessError(message string) StudioAccessError {
+	return StudioAccessError{
+		Message: message,
+	}
+}
+
+func IsStudioAccessError(err error) bool {
+	var e StudioAccessError
+	return errors.As(err, &e)
+}
+
 func IsEquipmentAccessError(err error) bool {
 	var e EquipmentAccessError
 	return errors.As(err, &e)

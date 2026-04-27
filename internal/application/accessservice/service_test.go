@@ -97,7 +97,7 @@ func (s *AccessServiceSuite) TestHaveAccessToEquipment_Organization_Success() {
 	org := &domain.Organization{
 		ID: orgID,
 		Users: []*domain.User{
-			{ID: userID},
+			{ID: userID, Nice: 100},
 		},
 	}
 

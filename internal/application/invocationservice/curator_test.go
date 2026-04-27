@@ -84,7 +84,7 @@ func (s *CuratorInvocationSuite) TestBecome_AlreadyHasAdmin() {
 	err := s.svc.Become(ctx, invID)
 
 	s.Error(err)
-	s.True(errs.IsValidationError(err))
+	s.True(errs.IsEntityAlreadyExistsError(err))
 }
 
 func (s *CuratorInvocationSuite) TestApprove_Success() {

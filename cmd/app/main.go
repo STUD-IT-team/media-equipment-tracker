@@ -17,21 +17,34 @@ import (
 	"media-equipment-tracker/internal/adapters/postgres/pgequipment"
 	"media-equipment-tracker/internal/adapters/postgres/pgequipmentinvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pgorganization"
+	"media-equipment-tracker/internal/adapters/postgres/pgstudioinvocation"
 	"media-equipment-tracker/internal/adapters/postgres/pguser"
 
 	jwt "media-equipment-tracker/internal/adapters/jwt"
 	"media-equipment-tracker/internal/application/accessservice"
 	authuser "media-equipment-tracker/internal/application/authservice"
 	authzservice "media-equipment-tracker/internal/application/authz_service"
+	"media-equipment-tracker/internal/application/departmentservice"
 	"media-equipment-tracker/internal/application/equipmentservice"
 	"media-equipment-tracker/internal/application/invocationservice"
 	"media-equipment-tracker/internal/application/userservice"
+
+	"media-equipment-tracker/internal/application/studioservice"
+
+	"media-equipment-tracker/internal/application/organizationservice"
+
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/handlers"
 	"media-equipment-tracker/internal/handlers/authapi"
+	"media-equipment-tracker/internal/handlers/departmentapi"
 	"media-equipment-tracker/internal/handlers/equipmentapi"
 	"media-equipment-tracker/internal/handlers/invocationapi"
 	"media-equipment-tracker/internal/handlers/userapi"
+
+	"media-equipment-tracker/internal/handlers/studioapi"
+
+	"media-equipment-tracker/internal/handlers/organizationapi"
+
 	"media-equipment-tracker/internal/middleware"
 )
 
@@ -58,6 +71,7 @@ func main() {
 	departmentRepo := pgdepartment.NewPostgresDepartmentRepository(dbGetter)
 	organizationRepo := pgorganization.NewPostgresOrganizationRepository(dbGetter)
 	invocationRepo := pgequipmentinvocation.NewPostgresEquipmentInvocationRepository(dbGetter)
+	studioRepo := pgstudioinvocation.NewPostgresStudioInvocationRepository(dbGetter)
 
 	// Auth
 	authZ := authzservice.NewAuthZ()
@@ -83,7 +97,10 @@ func main() {
 
 	accessService := accessservice.NewAccessService(authZ)
 	equipmentService := equipmentservice.NewEquipmentService(authZ, equipmentRepo, equipmentRepo, invocationRepo, departmentRepo, txManager)
+	departmentService := departmentservice.NewDepartmentService(authZ, departmentRepo, userRepo, equipmentRepo, txManager)
+	organizationService := organizationservice.NewOrganizationService(authZ, organizationRepo, txManager)
 	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
+	studioService := studioservice.NewStudioService(studioRepo, studioRepo, departmentRepo, organizationRepo, accessService, authZ, txManager)
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
@@ -102,6 +119,14 @@ func main() {
 	userRouter := userapi.NewUserRouter(usersGroup, userServ)
 	_ = userRouter
 
+	// Departments
+	departmentRouter := departmentapi.NewRouter(usersGroup, departmentService)
+	_ = departmentRouter
+
+	// Organizations
+	organizationRouter := organizationapi.NewRouter(usersGroup, organizationService)
+	_ = organizationRouter
+
 	// Equipment
 	equipmentRouter := equipmentapi.NewRouter(usersGroup, equipmentService)
 	_ = equipmentRouter
@@ -109,6 +134,10 @@ func main() {
 	// Invocation
 	invocationRouter := invocationapi.NewRouter(usersGroup, invocationService)
 	_ = invocationRouter
+
+	// Studio
+	studioRouter := studioapi.NewRouter(usersGroup, studioService)
+	_ = studioRouter
 
 	if err := engine.Run(fmt.Sprintf(":%d", config.AppPort)); err != nil {
 		panic(err.Error())
