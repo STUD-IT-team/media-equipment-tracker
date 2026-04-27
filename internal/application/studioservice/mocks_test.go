@@ -1,6 +1,6 @@
 //go:build unit
 
-package invocationservice_test
+package studioservice_test
 
 import (
 	"context"
@@ -9,37 +9,65 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"media-equipment-tracker/internal/application/accessservice"
-	"media-equipment-tracker/internal/application/equipmentservice"
-	"media-equipment-tracker/internal/application/invocationservice/invocationsearch"
+	"media-equipment-tracker/internal/application/studioservice"
+	"media-equipment-tracker/internal/application/studioservice/studiosearch"
 	"media-equipment-tracker/internal/domain"
 )
 
-type InvocationRepoMock struct{ mock.Mock }
+type StudioInvocationRepoMock struct{ mock.Mock }
 
-func (m *InvocationRepoMock) Get(ctx context.Context, id uuid.UUID, with ...domain.EquipmentInvocationOption) (*domain.EquipmentInvocation, error) {
+func (m *StudioInvocationRepoMock) Get(ctx context.Context, id uuid.UUID, with ...domain.StudioInvocationOption) (*domain.StudioInvocation, error) {
 	args := m.Called(ctx, id, with)
 	if v := args.Get(0); v != nil {
-		return v.(*domain.EquipmentInvocation), args.Error(1)
+		return v.(*domain.StudioInvocation), args.Error(1)
 	}
 	return nil, args.Error(1)
 }
-func (m *InvocationRepoMock) Create(ctx context.Context, invocation *domain.EquipmentInvocation) error {
-	return m.Called(ctx, invocation).Error(0)
+func (m *StudioInvocationRepoMock) List(ctx context.Context, with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
+	args := m.Called(ctx, with)
+	return args.Get(0).([]*domain.StudioInvocation), args.Error(1)
 }
-func (m *InvocationRepoMock) Update(ctx context.Context, invocation *domain.EquipmentInvocation) error {
-	return m.Called(ctx, invocation).Error(0)
+func (m *StudioInvocationRepoMock) Reload(ctx context.Context, studioInvocation *domain.StudioInvocation, with ...domain.StudioInvocationOption) error {
+	return m.Called(ctx, studioInvocation, with).Error(0)
 }
-func (m *InvocationRepoMock) Delete(ctx context.Context, id uuid.UUID) error {
+func (m *StudioInvocationRepoMock) Create(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
+	return m.Called(ctx, studioInvocation).Error(0)
+}
+func (m *StudioInvocationRepoMock) Update(ctx context.Context, studioInvocation *domain.StudioInvocation) error {
+	return m.Called(ctx, studioInvocation).Error(0)
+}
+func (m *StudioInvocationRepoMock) Delete(ctx context.Context, id uuid.UUID) error {
 	return m.Called(ctx, id).Error(0)
 }
-func (m *InvocationRepoMock) Reload(ctx context.Context, invocation *domain.EquipmentInvocation, with ...domain.EquipmentInvocationOption) error {
-	return m.Called(ctx, invocation, with).Error(0)
-}
-func (m *InvocationRepoMock) List(ctx context.Context, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
-	args := m.Called(ctx, with)
-	return args.Get(0).([]*domain.EquipmentInvocation), args.Error(1)
+
+type SearchStudioServiceMock struct{ mock.Mock }
+
+func (m *SearchStudioServiceMock) Search(ctx context.Context, search *studiosearch.SearchStudioInvocationRequest, with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
+	args := m.Called(ctx, search, with)
+	return args.Get(0).([]*domain.StudioInvocation), args.Error(1)
 }
 
+type AuthZMock struct{ mock.Mock }
+
+func (m *AuthZMock) Authorize(ctx context.Context, payload domain.TokenPayload) context.Context {
+	return m.Called(ctx, payload).Get(0).(context.Context)
+}
+func (m *AuthZMock) TokenPayloadFromContext(ctx context.Context) (domain.TokenPayload, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(domain.TokenPayload), args.Error(1)
+}
+
+type TxManagerMock struct{ mock.Mock }
+
+func (m *TxManagerMock) WithinTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	err := fn(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Additional mocks needed for embedded services
 type DepartmentRepoMock struct{ mock.Mock }
 
 func (m *DepartmentRepoMock) Get(ctx context.Context, id uuid.UUID, with ...domain.DepartmentOption) (*domain.Department, error) {
@@ -98,49 +126,21 @@ func (m *AccessServiceMock) HaveAccessToEquipment(ctx context.Context, req *acce
 	args := m.Called(ctx, req)
 	return args.Bool(0), args.Error(1)
 }
-
 func (m *AccessServiceMock) HaveAccessToStudio(ctx context.Context, req *accessservice.HaveStudioAccessRequest) (bool, error) {
 	args := m.Called(ctx, req)
 	return args.Bool(0), args.Error(1)
 }
 
-type AvailabilityEquipmentServiceMock struct{ mock.Mock }
+type SearchStudioInvocationRepoMock struct{ mock.Mock }
 
-func (m *AvailabilityEquipmentServiceMock) Availability(ctx context.Context, req equipmentservice.EquipmentAvailabilityRequest) (*equipmentservice.EquipmentAvailabilityResponse, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(*equipmentservice.EquipmentAvailabilityResponse), args.Error(1)
-}
-
-type AuthZMock struct{ mock.Mock }
-
-func (m *AuthZMock) Authorize(ctx context.Context, payload domain.TokenPayload) context.Context {
-	return m.Called(ctx, payload).Get(0).(context.Context)
-}
-func (m *AuthZMock) TokenPayloadFromContext(ctx context.Context) (domain.TokenPayload, error) {
-	args := m.Called(ctx)
-	return args.Get(0).(domain.TokenPayload), args.Error(1)
-}
-
-type TxManagerMock struct{ mock.Mock }
-
-func (m *TxManagerMock) WithinTx(ctx context.Context, fn func(ctx context.Context) error) error {
-	err := fn(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-type SearchInvocationRepoMock struct{ mock.Mock }
-
-func (m *SearchInvocationRepoMock) Search(ctx context.Context, search *invocationsearch.SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+func (m *SearchStudioInvocationRepoMock) Search(ctx context.Context, search *studiosearch.SearchStudioInvocationRequest, with ...domain.StudioInvocationOption) ([]*domain.StudioInvocation, error) {
 	args := m.Called(ctx, search, with)
-	return args.Get(0).([]*domain.EquipmentInvocation), args.Error(1)
+	return args.Get(0).([]*domain.StudioInvocation), args.Error(1)
 }
 
-type UpdateEquipmentServiceMock struct{ mock.Mock }
+type AvailabilityStudioServiceMock struct{ mock.Mock }
 
-func (m *UpdateEquipmentServiceMock) UpdateEquipment(ctx context.Context, req *equipmentservice.UpdateEquipmentRequest) (*domain.Equipment, error) {
+func (m *AvailabilityStudioServiceMock) Availability(ctx context.Context, req studioservice.AvailabilityStudioInvocationRequest) (*studioservice.StudioInvocationAvailabilityResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*domain.Equipment), args.Error(1)
+	return args.Get(0).(*studioservice.StudioInvocationAvailabilityResponse), args.Error(1)
 }

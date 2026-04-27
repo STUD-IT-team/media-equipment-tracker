@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"media-equipment-tracker/internal/domain"
+	"media-equipment-tracker/internal/domain/errs"
+	"media-equipment-tracker/internal/utils/validate"
 
 	"github.com/google/uuid"
 )
@@ -32,8 +34,8 @@ type SearchInvocationRequest struct {
 	Statuses     []domain.EquipmentInvocationStatus
 	EquipmentIDs []uuid.UUID
 
-	StartTime *time.Time
-	EndTime   *time.Time
+	StartTime *time.Time `validate:"omitempty"`
+	EndTime   *time.Time `validate:"omitempty,gtfield=StartTime"`
 
 	AdminID *uuid.UUID
 	UserID  *uuid.UUID
@@ -52,12 +54,6 @@ func (r *SearchInvocationRequest) nilize() {
 	if r.EquipmentIDs != nil && len(r.EquipmentIDs) == 0 {
 		r.EquipmentIDs = nil
 	}
-	if r.StartTime != nil && r.StartTime.Before(time.Now()) {
-		r.StartTime = nil
-	}
-	if r.EndTime != nil && r.EndTime.Before(time.Now()) {
-		r.EndTime = nil
-	}
 	if r.AdminID != nil && *r.AdminID == uuid.Nil {
 		r.AdminID = nil
 	}
@@ -73,6 +69,9 @@ func (r *SearchInvocationRequest) nilize() {
 }
 
 func (s *searchInvocationService) Search(ctx context.Context, search *SearchInvocationRequest, with ...domain.EquipmentInvocationOption) ([]*domain.EquipmentInvocation, error) {
+	if err := validate.ValidateStruct(search); err != nil {
+		return nil, errs.NewValidationError("SearchInvocationRequest", err.Error())
+	}
 	search.nilize()
 
 	if search.Statuses == nil {
