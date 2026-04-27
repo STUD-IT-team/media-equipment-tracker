@@ -3,12 +3,13 @@ package userservice
 import (
 	"context"
 	"fmt"
+	"slices"
+
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/internal/utils/validate"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 )
 
 type MeUserService interface {

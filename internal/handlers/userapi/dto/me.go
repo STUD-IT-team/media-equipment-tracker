@@ -2,9 +2,10 @@ package dto
 
 import (
 	"fmt"
+	"time"
+
 	"media-equipment-tracker/internal/application/userservice"
 	"media-equipment-tracker/internal/domain"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -229,7 +230,7 @@ func mapStudioStatus(status string) (domain.StudioInvocationStatus, error) {
 	case "cancelled":
 		return domain.StudioCancelled, nil
 	default:
-		return "", fmt.Errorf("Invalid status %s", status)
+		return "", fmt.Errorf("invalid status %s", status)
 	}
 }
 
@@ -252,7 +253,7 @@ func mapEquipmentStatus(status string) (domain.EquipmentInvocationStatus, error)
 	case "cancelled":
 		return domain.InvocationCancelled, nil
 	default:
-		return "", fmt.Errorf("Invalid status %s", status)
+		return "", fmt.Errorf("invalid status %s", status)
 	}
 }
 
@@ -265,6 +266,6 @@ func mapType(t string) (userservice.InvocationType, error) {
 	case "all":
 		return userservice.All, nil
 	default:
-		return "", fmt.Errorf("Invalid type %s", t)
+		return "", fmt.Errorf("invalid type %s", t)
 	}
 }

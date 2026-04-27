@@ -2,11 +2,12 @@ package userservice
 
 import (
 	"context"
+	"slices"
+
 	authzservice "media-equipment-tracker/internal/application/authz_service"
 	"media-equipment-tracker/internal/domain"
 	"media-equipment-tracker/internal/domain/errs"
 	"media-equipment-tracker/pkg/txmanager"
-	"slices"
 
 	"github.com/google/uuid"
 )

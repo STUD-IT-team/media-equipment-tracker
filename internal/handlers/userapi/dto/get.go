@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"media-equipment-tracker/internal/domain"
 	"time"
+
+	"media-equipment-tracker/internal/domain"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
