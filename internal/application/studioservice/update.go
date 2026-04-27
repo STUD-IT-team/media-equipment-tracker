@@ -136,6 +136,8 @@ func (s *updateStudioService) Update(ctx context.Context, req *UpdateStudioInvoc
 		resp, err := s.availabilityService.Availability(ctx, AvailabilityStudioInvocationRequest{
 			StartTime: inv.StartTime,
 			EndTime:   inv.EndTime,
+
+			ForInvocation: &inv.ID,
 		})
 
 		if err != nil {

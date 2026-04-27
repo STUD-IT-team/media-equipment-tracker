@@ -81,8 +81,13 @@ func DeserializeSearchStudioRequest(c *gin.Context) (*studiosearch.SearchStudioI
 	}
 
 	return &studiosearch.SearchStudioInvocationRequest{
-		SearchString:   searchString,
-		Statuses:       []domain.StudioInvocationStatus{*status},
+		SearchString: searchString,
+		Statuses: func() []domain.StudioInvocationStatus {
+			if status == nil {
+				return nil
+			}
+			return []domain.StudioInvocationStatus{*status}
+		}(),
 		StartTime:      startTime,
 		EndTime:        endTime,
 		AdminID:        adminID,

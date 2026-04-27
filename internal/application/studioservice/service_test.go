@@ -41,8 +41,6 @@ func (s *StudioServiceSuite) SetupTest() {
 	s.auther = new(AuthZMock)
 	s.txm = new(TxManagerMock)
 
-	// Create search service for availability
-	searchSvc := studiosearch.NewSearchStudioService(s.searchRepo)
 
 	svc := studioservice.NewStudioService(
 		s.studioRepo,
@@ -50,7 +48,6 @@ func (s *StudioServiceSuite) SetupTest() {
 		s.departmentRepo,
 		s.organizationRepo,
 		s.accessService,
-		searchSvc, // for availability
 		s.auther,
 		s.txm,
 	)
