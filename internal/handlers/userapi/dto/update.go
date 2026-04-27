@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"fmt"
 	"media-equipment-tracker/internal/application/userservice"
 	"media-equipment-tracker/internal/domain"
 
@@ -81,7 +82,7 @@ func mapRole(role string) (domain.RoleInDepartment, error) {
 	case "activist":
 		return domain.RoleActivist, nil
 	default:
-		return "", nil
+		return "", fmt.Errorf("invalid role: %s", role)
 	}
 }
 

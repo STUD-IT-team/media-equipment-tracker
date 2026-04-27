@@ -127,26 +127,32 @@ func DeserializeMyInvocationsRequest(c *gin.Context) (*userservice.MyInvocations
 		return nil, err
 	}
 
-	equipmentStatuses := make([]domain.EquipmentInvocationStatus, 0, len(req.Statuses))
-	for _, status := range req.Statuses {
-		s, err := mapEquipmentStatus(status)
-		if err != nil {
-			return nil, err
-		}
-		equipmentStatuses = append(equipmentStatuses, s)
-	}
-	studioStatuses := make([]domain.StudioInvocationStatus, 0, len(req.Statuses))
-	for _, status := range req.Statuses {
-		s, err := mapStudioStatus(status)
-		if err != nil {
-			return nil, err
-		}
-		studioStatuses = append(studioStatuses, s)
-	}
-
 	t, err := mapType(req.Type)
 	if err != nil {
 		return nil, err
+	}
+	var equipmentStatuses []domain.EquipmentInvocationStatus
+	if t == userservice.All || t == userservice.Equipment {
+		equipmentStatuses := make([]domain.EquipmentInvocationStatus, 0, len(req.Statuses))
+		for _, status := range req.Statuses {
+			s, err := mapEquipmentStatus(status)
+			if err != nil {
+				return nil, err
+			}
+			equipmentStatuses = append(equipmentStatuses, s)
+		}
+	}
+
+	var studioStatuses []domain.StudioInvocationStatus
+	if t == userservice.All || t == userservice.Studio {
+		studioStatuses := make([]domain.StudioInvocationStatus, 0, len(req.Statuses))
+		for _, status := range req.Statuses {
+			s, err := mapStudioStatus(status)
+			if err != nil {
+				return nil, err
+			}
+			studioStatuses = append(studioStatuses, s)
+		}
 	}
 
 	return &userservice.MyInvocationsRequest{

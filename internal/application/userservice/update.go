@@ -17,7 +17,7 @@ type UpdateUserRequest struct {
 	ID              uuid.UUID   `validate:"required"`
 	FullName        *string     `validate:"omitempty"`
 	Email           *string     `validate:"omitempty,email"`
-	Nice            *int        `validate:"omitempty,min=0,max=100"`
+	Nice            *int        `validate:"omitempty,min=1,max=100"`
 	IsAdmin         *bool       `validate:"omitempty"`
 	OrganizationIDs []uuid.UUID `validate:"omitempty"`
 	Departments     []UpdateUserDepartment
@@ -30,7 +30,7 @@ type UpdateUserDepartment struct {
 
 type UpdateNiceRequest struct {
 	ID   uuid.UUID `validate:"required"`
-	Nice int       `validate:"required,min=0,max=100"`
+	Nice int       `validate:"required,min=1,max=100"`
 }
 
 type UpdateUserService interface {
