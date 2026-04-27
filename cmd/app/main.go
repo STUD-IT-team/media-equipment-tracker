@@ -30,7 +30,6 @@ import (
 	"media-equipment-tracker/internal/application/invocationservice"
 
 	"media-equipment-tracker/internal/application/studioservice"
-	"media-equipment-tracker/internal/application/studioservice/studiosearch"
 
 	"media-equipment-tracker/internal/application/organizationservice"
 
@@ -95,7 +94,7 @@ func main() {
 	departmentService := departmentservice.NewDepartmentService(authZ, departmentRepo, userRepo, equipmentRepo, txManager)
 	organizationService := organizationservice.NewOrganizationService(authZ, organizationRepo, txManager)
 	invocationService := invocationservice.NewInvocationService(invocationRepo, invocationRepo, departmentRepo, organizationRepo, equipmentService, equipmentService, accessService, txManager, authZ)
-	studioService := studioservice.NewStudioService(studioRepo, studiosearch.NewSearchStudioService(studioRepo), departmentRepo, organizationRepo, accessService, studiosearch.NewSearchStudioService(studioRepo), authZ, txManager)
+	studioService := studioservice.NewStudioService(studioRepo, studioRepo, departmentRepo, organizationRepo, accessService, authZ, txManager)
 
 	// Groups
 	healthRouter := handlers.NewHealthRouter(engine.Group("/"))
